@@ -1,15 +1,15 @@
-export const formatDate = (date) => {
+export const formatDate = (date: Date | string | null | undefined): string | null => {
   if (!date) return null;
   const d = new Date(date);
   const today = new Date();
   const tomorrow = new Date();
   tomorrow.setDate(today.getDate() + 1);
   if (d.toDateString() === today.toDateString()) return "Aujourd'hui";
-  if (d.toDateString() === tomorrow.toDateString()) return "Demain";
-  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  if (d.toDateString() === tomorrow.toDateString()) return 'Demain';
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 };
 
-export const isOverdue = (date) => {
+export const isOverdue = (date: string | null | undefined): boolean => {
   if (!date) return false;
   const d = new Date(date);
   const today = new Date();

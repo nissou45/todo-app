@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,33 +8,41 @@ import {
   ScrollView,
   Platform,
   Alert,
-  useColorScheme,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import Header from "../components/Header";
-import TodoRow from "../components/TodoRow";
-import { CATEGORIES, STORAGE_KEY } from "../constants/theme";
-import { formatDate } from "../utils/dateHelpers";
-import { getStyles } from "../constants/styles";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import Header from '../components/Header';
+import TodoRow from '../components/TodoRow';
+import { CATEGORIES, STORAGE_KEY } from '../constants/theme';
+import { formatDate } from '../utils/dateHelpers';
+import { getStyles } from '../constants/styles';
+import { Todo, ColorScheme, NavigateFn } from '../types';
 
-export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
+interface HomeScreenProps {
+  todos: Todo[];
+  setTodos: (todos: Todo[]) => void;
+  navigate: NavigateFn;
+  isDark: boolean;
+  C: ColorScheme;
+}
+
+export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: HomeScreenProps) {
   const styles = getStyles(isDark, C);
-  const [inputText, setInputText] = useState("");
-  const [filter, setFilter] = useState("all");
+  const [inputText, setInputText] = useState('');
+  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [selectedCat, setSelectedCat] = useState(CATEGORIES[0].id);
-  const [filterCat, setFilterCat] = useState("all");
-  const [dueDate, setDueDate] = useState(null);
+  const [filterCat, setFilterCat] = useState('all');
+  const [dueDate, setDueDate] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState(new Date());
 
-  const save = (next) =>
+  const save = (next: Todo[]) =>
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 
   const addTodo = () => {
     if (!inputText.trim()) return;
-    const next = [
+    const next: Todo[] = [
       ...todos,
       {
         id: Date.now().toString(),
@@ -46,11 +54,11 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
     ];
     setTodos(next);
     save(next);
-    setInputText("");
+    setInputText('');
     setDueDate(null);
   };
 
-  const toggleTodo = (id) => {
+  const toggleTodo = (id: string) => {
     const next = todos.map((t) =>
       t.id === id ? { ...t, completed: !t.completed } : t,
     );
@@ -58,12 +66,12 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
     save(next);
   };
 
-  const deleteTodo = (id) =>
-    Alert.alert("Supprimer", "Confirmer ?", [
-      { text: "Annuler", style: "cancel" },
+  const deleteTodo = (id: string) =>
+    Alert.alert('Supprimer', 'Confirmer ?', [
+      { text: 'Annuler', style: 'cancel' },
       {
-        text: "Supprimer",
-        style: "destructive",
+        text: 'Supprimer',
+        style: 'destructive',
         onPress: () => {
           const next = todos.filter((t) => t.id !== id);
           setTodos(next);
@@ -74,12 +82,12 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
 
   const filtered = todos.filter((t) => {
     const matchStatus =
-      filter === "active"
+      filter === 'active'
         ? !t.completed
-        : filter === "completed"
+        : filter === 'completed'
           ? t.completed
           : true;
-    const matchCat = filterCat === "all" || t.categoryId === filterCat;
+    const matchCat = filterCat === 'all' || t.categoryId === filterCat;
     return matchStatus && matchCat;
   });
 
@@ -88,17 +96,17 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
     CATEGORIES.find((c) => c.id === selectedCat) || CATEGORIES[0];
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <Header
         title="Mes tâches"
         C={C}
-        onRight={() => navigate("categories")}
+        onRight={() => navigate('categories')}
         rightLabel="⚙ Catégories"
       />
 
       <View style={styles.statsRow}>
         <Text style={styles.subtitle}>
-          {remaining === 0 ? "Tout est fait !" : `${remaining} à compléter`}
+          {remaining === 0 ? 'Tout est fait !' : `${remaining} à compléter`}
         </Text>
         <View style={styles.statsCircle}>
           <Text style={styles.statsNum}>
@@ -132,13 +140,13 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
                 styles.catPill,
                 selectedCat === cat.id
                   ? { backgroundColor: cat.color }
-                  : { backgroundColor: isDark ? "#2A2A42" : cat.bg },
+                  : { backgroundColor: isDark ? '#2A2A42' : cat.bg },
               ]}
             >
               <Text
                 style={[
                   styles.catPillText,
-                  { color: selectedCat === cat.id ? "#fff" : cat.color },
+                  { color: selectedCat === cat.id ? '#fff' : cat.color },
                 ]}
               >
                 {cat.name}
@@ -152,7 +160,7 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
             style={[
               styles.datePill,
               dueDate && {
-                backgroundColor: activeCat.color + "22",
+                backgroundColor: activeCat.color + '22',
                 borderColor: activeCat.color,
               },
             ]}
@@ -163,7 +171,7 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
                 { color: dueDate ? activeCat.color : C.textMuted },
               ]}
             >
-              {dueDate ? `📅 ${formatDate(dueDate)}` : "+ Date"}
+              {dueDate ? `📅 ${formatDate(dueDate)}` : '+ Date'}
             </Text>
           </TouchableOpacity>
           {dueDate && (
@@ -181,24 +189,24 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
         </View>
       </View>
 
-      {showPicker && Platform.OS === "ios" && (
+      {showPicker && Platform.OS === 'ios' && (
         <View style={styles.pickerCard}>
           <DateTimePicker
             value={tempDate}
             mode="date"
             display="inline"
             minimumDate={new Date()}
-            onChange={(e, date) => {
+            onChange={(_e: DateTimePickerEvent, date?: Date) => {
               if (date) setTempDate(date);
             }}
-            themeVariant={isDark ? "dark" : "light"}
+            themeVariant={isDark ? 'dark' : 'light'}
           />
           <View style={styles.pickerBtns}>
             <TouchableOpacity
               onPress={() => setShowPicker(false)}
               style={styles.pickerCancel}
             >
-              <Text style={{ color: C.textMuted, fontWeight: "500" }}>
+              <Text style={{ color: C.textMuted, fontWeight: '500' }}>
                 Annuler
               </Text>
             </TouchableOpacity>
@@ -212,20 +220,20 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
                 { backgroundColor: activeCat.color },
               ]}
             >
-              <Text style={{ color: "#fff", fontWeight: "600" }}>
+              <Text style={{ color: '#fff', fontWeight: '600' }}>
                 Confirmer
               </Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
-      {showPicker && Platform.OS === "android" && (
+      {showPicker && Platform.OS === 'android' && (
         <DateTimePicker
           value={tempDate}
           mode="date"
           display="default"
           minimumDate={new Date()}
-          onChange={(e, date) => {
+          onChange={(_e: DateTimePickerEvent, date?: Date) => {
             setShowPicker(false);
             if (date) setDueDate(date);
           }}
@@ -233,7 +241,7 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
       )}
 
       <View style={styles.filterRow}>
-        {["all", "active", "completed"].map((f) => (
+        {(['all', 'active', 'completed'] as const).map((f) => (
           <TouchableOpacity
             key={f}
             onPress={() => setFilter(f)}
@@ -245,7 +253,7 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
                 filter === f && styles.filterTabTextActive,
               ]}
             >
-              {f === "all" ? "Tout" : f === "active" ? "En cours" : "Terminé"}
+              {f === 'all' ? 'Tout' : f === 'active' ? 'En cours' : 'Terminé'}
             </Text>
           </TouchableOpacity>
         ))}
@@ -258,12 +266,12 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
         contentContainerStyle={{ paddingHorizontal: 20, gap: 6 }}
       >
         <TouchableOpacity
-          onPress={() => setFilterCat("all")}
+          onPress={() => setFilterCat('all')}
           style={[
             styles.catPill,
-            filterCat === "all"
-              ? { backgroundColor: isDark ? "#EDE8E0" : "#1A1220" }
-              : { backgroundColor: isDark ? "#2A2A42" : "#E8E0D8" },
+            filterCat === 'all'
+              ? { backgroundColor: isDark ? '#EDE8E0' : '#1A1220' }
+              : { backgroundColor: isDark ? '#2A2A42' : '#E8E0D8' },
           ]}
         >
           <Text
@@ -271,10 +279,10 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
               styles.catPillText,
               {
                 color:
-                  filterCat === "all"
+                  filterCat === 'all'
                     ? isDark
-                      ? "#1A1220"
-                      : "#EDE8E0"
+                      ? '#1A1220'
+                      : '#EDE8E0'
                     : C.textMuted,
               },
             ]}
@@ -290,13 +298,13 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
               styles.catPill,
               filterCat === cat.id
                 ? { backgroundColor: cat.color }
-                : { backgroundColor: isDark ? "#2A2A42" : cat.bg },
+                : { backgroundColor: isDark ? '#2A2A42' : cat.bg },
             ]}
           >
             <Text
               style={[
                 styles.catPillText,
-                { color: filterCat === cat.id ? "#fff" : cat.color },
+                { color: filterCat === cat.id ? '#fff' : cat.color },
               ]}
             >
               {cat.name}
@@ -314,7 +322,7 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }) {
             item={item}
             onToggle={toggleTodo}
             onDelete={deleteTodo}
-            onPress={(todo) => navigate("detail", todo)}
+            onPress={(todo) => navigate('detail', todo)}
             C={C}
             styles={styles}
           />

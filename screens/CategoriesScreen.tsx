@@ -1,16 +1,24 @@
-import React from "react";
-import { View, Text, FlatList } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Header from "../components/Header";
-import { CATEGORIES } from "../constants/theme";
-import { getStyles } from "../constants/styles";
+import React from 'react';
+import { View, Text, FlatList } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Header from '../components/Header';
+import { CATEGORIES } from '../constants/theme';
+import { getStyles } from '../constants/styles';
+import { Todo, ColorScheme, NavigateFn } from '../types';
 
-export default function CategoriesScreen({ todos, navigate, isDark, C }) {
+interface CategoriesScreenProps {
+  todos: Todo[];
+  navigate: NavigateFn;
+  isDark: boolean;
+  C: ColorScheme;
+}
+
+export default function CategoriesScreen({ todos, navigate, isDark, C }: CategoriesScreenProps) {
   const styles = getStyles(isDark, C);
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
-      <Header title="Catégories" onBack={() => navigate("home")} C={C} />
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <Header title="Catégories" onBack={() => navigate('home')} C={C} />
       <FlatList
         data={CATEGORIES}
         keyExtractor={(item) => item.id}
@@ -33,7 +41,7 @@ export default function CategoriesScreen({ todos, navigate, isDark, C }) {
                 </Text>
               </View>
               <View
-                style={[styles.catPill, { backgroundColor: item.color + "22" }]}
+                style={[styles.catPill, { backgroundColor: item.color + '22' }]}
               >
                 <Text style={[styles.catPillText, { color: item.color }]}>
                   {count}

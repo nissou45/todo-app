@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,27 +7,30 @@ import {
   ScrollView,
   Platform,
   Alert,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import Header from "../components/Header";
-import { CATEGORIES, STORAGE_KEY } from "../constants/theme";
-import { formatDate } from "../utils/dateHelpers";
-import { getStyles } from "../constants/styles";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import Header from '../components/Header';
+import { CATEGORIES, STORAGE_KEY } from '../constants/theme';
+import { formatDate } from '../utils/dateHelpers';
+import { getStyles } from '../constants/styles';
+import { Todo, ColorScheme, NavigateFn } from '../types';
 
-export default function DetailScreen({
-  todo,
-  todos,
-  setTodos,
-  navigate,
-  isDark,
-  C,
-}) {
+interface DetailScreenProps {
+  todo: Todo;
+  todos: Todo[];
+  setTodos: (todos: Todo[]) => void;
+  navigate: NavigateFn;
+  isDark: boolean;
+  C: ColorScheme;
+}
+
+export default function DetailScreen({ todo, todos, setTodos, navigate, isDark, C }: DetailScreenProps) {
   const styles = getStyles(isDark, C);
   const [text, setText] = useState(todo.text);
-  const [categoryId, setCategoryId] = useState(todo.categoryId || "1");
-  const [dueDate, setDueDate] = useState(
+  const [categoryId, setCategoryId] = useState(todo.categoryId || '1');
+  const [dueDate, setDueDate] = useState<Date | null>(
     todo.dueDate ? new Date(todo.dueDate) : null,
   );
   const [showPicker, setShowPicker] = useState(false);
@@ -47,29 +50,29 @@ export default function DetailScreen({
     );
     setTodos(next);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    navigate("home");
+    navigate('home');
   };
 
   const deleteTodo = () =>
-    Alert.alert("Supprimer", "Confirmer ?", [
-      { text: "Annuler", style: "cancel" },
+    Alert.alert('Supprimer', 'Confirmer ?', [
+      { text: 'Annuler', style: 'cancel' },
       {
-        text: "Supprimer",
-        style: "destructive",
+        text: 'Supprimer',
+        style: 'destructive',
         onPress: async () => {
           const next = todos.filter((t) => t.id !== todo.id);
           setTodos(next);
           await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-          navigate("home");
+          navigate('home');
         },
       },
     ]);
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <Header
         title="Détail"
-        onBack={() => navigate("home")}
+        onBack={() => navigate('home')}
         onRight={save}
         rightLabel="Sauvegarder"
         C={C}
@@ -87,8 +90,8 @@ export default function DetailScreen({
         <Text style={styles.detailLabel}>Catégorie</Text>
         <View
           style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
+            flexDirection: 'row',
+            flexWrap: 'wrap',
             gap: 8,
             marginBottom: 20,
           }}
@@ -101,13 +104,13 @@ export default function DetailScreen({
                 styles.catPill,
                 categoryId === c.id
                   ? { backgroundColor: c.color }
-                  : { backgroundColor: isDark ? "#2A2A42" : c.bg },
+                  : { backgroundColor: isDark ? '#2A2A42' : c.bg },
               ]}
             >
               <Text
                 style={[
                   styles.catPillText,
-                  { color: categoryId === c.id ? "#fff" : c.color },
+                  { color: categoryId === c.id ? '#fff' : c.color },
                 ]}
               >
                 {c.name}
@@ -131,7 +134,7 @@ export default function DetailScreen({
               { color: dueDate ? cat.color : C.textMuted },
             ]}
           >
-            {dueDate ? `📅 ${formatDate(dueDate)}` : "+ Ajouter une date"}
+            {dueDate ? `📅 ${formatDate(dueDate)}` : '+ Ajouter une date'}
           </Text>
         </TouchableOpacity>
         {dueDate && (
@@ -144,24 +147,24 @@ export default function DetailScreen({
           </TouchableOpacity>
         )}
 
-        {showPicker && Platform.OS === "ios" && (
+        {showPicker && Platform.OS === 'ios' && (
           <View style={styles.pickerCard}>
             <DateTimePicker
               value={tempDate}
               mode="date"
               display="inline"
               minimumDate={new Date()}
-              onChange={(e, date) => {
+              onChange={(_e: DateTimePickerEvent, date?: Date) => {
                 if (date) setTempDate(date);
               }}
-              themeVariant={isDark ? "dark" : "light"}
+              themeVariant={isDark ? 'dark' : 'light'}
             />
             <View style={styles.pickerBtns}>
               <TouchableOpacity
                 onPress={() => setShowPicker(false)}
                 style={styles.pickerCancel}
               >
-                <Text style={{ color: C.textMuted, fontWeight: "500" }}>
+                <Text style={{ color: C.textMuted, fontWeight: '500' }}>
                   Annuler
                 </Text>
               </TouchableOpacity>
@@ -172,20 +175,20 @@ export default function DetailScreen({
                 }}
                 style={[styles.pickerConfirm, { backgroundColor: cat.color }]}
               >
-                <Text style={{ color: "#fff", fontWeight: "600" }}>
+                <Text style={{ color: '#fff', fontWeight: '600' }}>
                   Confirmer
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
-        {showPicker && Platform.OS === "android" && (
+        {showPicker && Platform.OS === 'android' && (
           <DateTimePicker
             value={tempDate}
             mode="date"
             display="default"
             minimumDate={new Date()}
-            onChange={(e, date) => {
+            onChange={(_e: DateTimePickerEvent, date?: Date) => {
               setShowPicker(false);
               if (date) setDueDate(date);
             }}
@@ -197,19 +200,19 @@ export default function DetailScreen({
           style={[
             styles.statusBadge,
             {
-              backgroundColor: todo.completed ? "#04784722" : "#7C3AED22",
+              backgroundColor: todo.completed ? '#04784722' : '#7C3AED22',
               marginBottom: 32,
             },
           ]}
         >
           <Text
             style={{
-              color: todo.completed ? "#047857" : "#7C3AED",
-              fontWeight: "600",
+              color: todo.completed ? '#047857' : '#7C3AED',
+              fontWeight: '600',
               fontSize: 13,
             }}
           >
-            {todo.completed ? "✓ Terminée" : "○ En cours"}
+            {todo.completed ? '✓ Terminée' : '○ En cours'}
           </Text>
         </View>
 

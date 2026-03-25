@@ -1,26 +1,30 @@
-import React, { useRef } from "react";
-import { View, Text, TouchableOpacity, Animated } from "react-native";
-import { Swipeable } from "react-native-gesture-handler";
-import { CATEGORIES } from "../constants/theme";
-import { formatDate, isOverdue } from "../utils/dateHelpers";
+import React, { useRef } from 'react';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
+import { CATEGORIES } from '../constants/theme';
+import { formatDate, isOverdue } from '../utils/dateHelpers';
+import { Todo, ColorScheme } from '../types';
+import { StyleSheet } from 'react-native';
 
-export default function TodoRow({
-  item,
-  onToggle,
-  onDelete,
-  onPress,
-  C,
-  styles,
-}) {
-  const swipeRef = useRef(null);
+interface TodoRowProps {
+  item: Todo;
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+  onPress: (todo: Todo) => void;
+  C: ColorScheme;
+  styles: ReturnType<typeof StyleSheet.create>;
+}
+
+export default function TodoRow({ item, onToggle, onDelete, onPress, C, styles }: TodoRowProps) {
+  const swipeRef = useRef<Swipeable>(null);
   const cat = CATEGORIES.find((c) => c.id === item.categoryId) || CATEGORIES[0];
   const overdue = !item.completed && isOverdue(item.dueDate);
 
-  const renderRightActions = (progress, dragX) => {
+  const renderRightActions = (_progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
     const scale = dragX.interpolate({
       inputRange: [-90, 0],
       outputRange: [1, 0.5],
-      extrapolate: "clamp",
+      extrapolate: 'clamp',
     });
     return (
       <TouchableOpacity
@@ -59,7 +63,7 @@ export default function TodoRow({
             ]}
           >
             {item.completed && (
-              <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>
+              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>
                 ✓
               </Text>
             )}
@@ -70,8 +74,8 @@ export default function TodoRow({
             </Text>
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
+                flexDirection: 'row',
+                alignItems: 'center',
                 gap: 8,
                 marginTop: 4,
               }}
@@ -83,10 +87,10 @@ export default function TodoRow({
                 <Text
                   style={[
                     styles.dateLabel,
-                    { color: overdue ? "#EF4444" : C.textMuted },
+                    { color: overdue ? '#EF4444' : C.textMuted },
                   ]}
                 >
-                  {overdue ? "⚠ " : ""}
+                  {overdue ? '⚠ ' : ''}
                   {formatDate(item.dueDate)}
                 </Text>
               )}
