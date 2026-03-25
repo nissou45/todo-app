@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,8 +11,13 @@ import {
   useColorScheme,
   ScrollView,
   Platform,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  GestureHandlerRootView,
+  Swipeable,
+} from "react-native-gesture-handler";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
@@ -28,7 +33,6 @@ const CATEGORIES = [
 const DARK = {
   bg: "#0E0E1A",
   card: "#18182A",
-  cardAlt: "#1E1E32",
   text: "#EDE8E0",
   textMuted: "#6B6B8A",
   border: "#2A2A42",
@@ -36,7 +40,6 @@ const DARK = {
 const LIGHT = {
   bg: "#F5F0EA",
   card: "#FFFFFF",
-  cardAlt: "#F0EBE3",
   text: "#1A1220",
   textMuted: "#9A8FA0",
   border: "#E8E0D8",
@@ -60,6 +63,91 @@ const isOverdue = (date) => {
   today.setHours(0, 0, 0, 0);
   return d < today;
 };
+
+function TodoRow({ item, onToggle, onDelete, C, styles }) {
+  const swipeRef = useRef(null);
+  const cat = CATEGORIES.find((c) => c.id === item.categoryId) || CATEGORIES[0];
+  const overdue = !item.completed && isOverdue(item.dueDate);
+
+  const renderRightActions = (progress, dragX) => {
+    const scale = dragX.interpolate({
+      inputRange: [-90, 0],
+      outputRange: [1, 0.5],
+      extrapolate: "clamp",
+    });
+    return (
+      <TouchableOpacity
+        style={styles.deleteAction}
+        onPress={() => {
+          swipeRef.current?.close();
+          onDelete(item.id);
+        }}
+      >
+        <Animated.Text
+          style={[styles.deleteActionText, { transform: [{ scale }] }]}
+        >
+          Supprimer
+        </Animated.Text>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <Swipeable
+      ref={swipeRef}
+      renderRightActions={renderRightActions}
+      rightThreshold={40}
+      overshootRight={false}
+      friction={2}
+    >
+      <View style={[styles.todoCard, overdue && styles.overdueCard]}>
+        <View style={[styles.catStripe, { backgroundColor: cat.color }]} />
+        <TouchableOpacity
+          onPress={() => onToggle(item.id)}
+          style={[
+            styles.checkbox,
+            { borderColor: cat.color },
+            item.completed && { backgroundColor: cat.color },
+          ]}
+        >
+          {item.completed && (
+            <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>
+              ✓
+            </Text>
+          )}
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.todoText, item.completed && styles.done]}>
+            {item.text}
+          </Text>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              marginTop: 4,
+            }}
+          >
+            <Text style={[styles.catLabel, { color: cat.color }]}>
+              {cat.name}
+            </Text>
+            {item.dueDate && (
+              <Text
+                style={[
+                  styles.dateLabel,
+                  { color: overdue ? "#EF4444" : C.textMuted },
+                ]}
+              >
+                {overdue ? "⚠ " : ""}
+                {formatDate(item.dueDate)}
+              </Text>
+            )}
+          </View>
+        </View>
+      </View>
+    </Swipeable>
+  );
+}
 
 export default function TodoApp() {
   const isDark = useColorScheme() === "dark";
@@ -142,43 +230,40 @@ export default function TodoApp() {
   const activeCat = getCat(selectedCat);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Mes tâches</Text>
-          <Text style={styles.subtitle}>
-            {remaining === 0 ? "Tout est fait !" : `${remaining} à compléter`}
-          </Text>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>Mes tâches</Text>
+            <Text style={styles.subtitle}>
+              {remaining === 0 ? "Tout est fait !" : `${remaining} à compléter`}
+            </Text>
+          </View>
+          <View style={styles.statsCircle}>
+            <Text style={styles.statsNum}>
+              {todos.filter((t) => t.completed).length}
+            </Text>
+            <Text style={styles.statsLabel}>faites</Text>
+          </View>
         </View>
-        <View style={styles.statsCircle}>
-          <Text style={styles.statsNum}>
-            {todos.filter((t) => t.completed).length}
-          </Text>
-          <Text style={styles.statsLabel}>faites</Text>
-        </View>
-      </View>
 
-      {/* Input card */}
-      <View style={styles.inputCard}>
-        <TextInput
-          style={styles.input}
-          value={inputText}
-          onChangeText={setInputText}
-          placeholder="Nouvelle tâche..."
-          placeholderTextColor={C.textMuted}
-          onSubmitEditing={addTodo}
-          returnKeyType="done"
-        />
-
-        {/* Ligne catégories + date */}
-        <View style={styles.inputMiddle}>
+        <View style={styles.inputCard}>
+          <TextInput
+            style={styles.input}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Nouvelle tâche..."
+            placeholderTextColor={C.textMuted}
+            onSubmitEditing={addTodo}
+            returnKeyType="done"
+          />
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 6, flex: 0 }}
+            style={{ marginBottom: 10 }}
+            contentContainerStyle={{ gap: 6 }}
           >
             {CATEGORIES.map((cat) => (
               <TouchableOpacity
@@ -202,250 +287,187 @@ export default function TodoApp() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-        </View>
-
-        {/* Ligne date + bouton + */}
-        <View style={styles.inputBottom}>
-          <TouchableOpacity
-            onPress={() => setShowPicker(true)}
-            style={[
-              styles.datePill,
-              dueDate && {
-                backgroundColor: activeCat.color + "22",
-                borderColor: activeCat.color,
-              },
-            ]}
-          >
-            <Text
+          <View style={styles.inputBottom}>
+            <TouchableOpacity
+              onPress={() => setShowPicker(true)}
               style={[
-                styles.datePillText,
-                { color: dueDate ? activeCat.color : C.textMuted },
+                styles.datePill,
+                dueDate && {
+                  backgroundColor: activeCat.color + "22",
+                  borderColor: activeCat.color,
+                },
               ]}
             >
-              {dueDate ? `📅 ${formatDate(dueDate)}` : "+ Date"}
-            </Text>
-          </TouchableOpacity>
-          {dueDate && (
-            <TouchableOpacity
-              onPress={() => setDueDate(null)}
-              style={styles.clearDate}
-            >
-              <Text style={{ color: C.textMuted, fontSize: 13 }}>✕</Text>
-            </TouchableOpacity>
-          )}
-          <View style={{ flex: 1 }} />
-          <TouchableOpacity
-            style={[styles.addBtn, { backgroundColor: activeCat.color }]}
-            onPress={addTodo}
-          >
-            <Text style={styles.addBtnText}>+</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Date Picker iOS */}
-      {showPicker && Platform.OS === "ios" && (
-        <View style={styles.pickerCard}>
-          <DateTimePicker
-            value={tempDate}
-            mode="date"
-            display="inline"
-            minimumDate={new Date()}
-            onChange={(e, date) => {
-              if (date) setTempDate(date);
-            }}
-            themeVariant={isDark ? "dark" : "light"}
-          />
-          <View style={styles.pickerBtns}>
-            <TouchableOpacity
-              onPress={() => setShowPicker(false)}
-              style={styles.pickerCancel}
-            >
-              <Text style={{ color: C.textMuted, fontWeight: "500" }}>
-                Annuler
+              <Text
+                style={[
+                  styles.datePillText,
+                  { color: dueDate ? activeCat.color : C.textMuted },
+                ]}
+              >
+                {dueDate ? `📅 ${formatDate(dueDate)}` : "+ Date"}
               </Text>
             </TouchableOpacity>
+            {dueDate && (
+              <TouchableOpacity onPress={() => setDueDate(null)}>
+                <Text style={{ color: C.textMuted, fontSize: 13 }}>✕</Text>
+              </TouchableOpacity>
+            )}
+            <View style={{ flex: 1 }} />
             <TouchableOpacity
-              onPress={() => {
-                setDueDate(tempDate);
-                setShowPicker(false);
-              }}
-              style={[
-                styles.pickerConfirm,
-                { backgroundColor: activeCat.color },
-              ]}
+              style={[styles.addBtn, { backgroundColor: activeCat.color }]}
+              onPress={addTodo}
             >
-              <Text style={{ color: "#fff", fontWeight: "600" }}>
-                Confirmer
-              </Text>
+              <Text style={styles.addBtnText}>+</Text>
             </TouchableOpacity>
           </View>
         </View>
-      )}
 
-      {/* Date Picker Android */}
-      {showPicker && Platform.OS === "android" && (
-        <DateTimePicker
-          value={tempDate}
-          mode="date"
-          display="default"
-          minimumDate={new Date()}
-          onChange={(e, date) => {
-            setShowPicker(false);
-            if (date) setDueDate(date);
-          }}
-        />
-      )}
+        {showPicker && Platform.OS === "ios" && (
+          <View style={styles.pickerCard}>
+            <DateTimePicker
+              value={tempDate}
+              mode="date"
+              display="inline"
+              minimumDate={new Date()}
+              onChange={(e, date) => {
+                if (date) setTempDate(date);
+              }}
+              themeVariant={isDark ? "dark" : "light"}
+            />
+            <View style={styles.pickerBtns}>
+              <TouchableOpacity
+                onPress={() => setShowPicker(false)}
+                style={styles.pickerCancel}
+              >
+                <Text style={{ color: C.textMuted, fontWeight: "500" }}>
+                  Annuler
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setDueDate(tempDate);
+                  setShowPicker(false);
+                }}
+                style={[
+                  styles.pickerConfirm,
+                  { backgroundColor: activeCat.color },
+                ]}
+              >
+                <Text style={{ color: "#fff", fontWeight: "600" }}>
+                  Confirmer
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+        {showPicker && Platform.OS === "android" && (
+          <DateTimePicker
+            value={tempDate}
+            mode="date"
+            display="default"
+            minimumDate={new Date()}
+            onChange={(e, date) => {
+              setShowPicker(false);
+              if (date) setDueDate(date);
+            }}
+          />
+        )}
 
-      {/* Filtres statut */}
-      <View style={styles.filterRow}>
-        {["all", "active", "completed"].map((f) => (
-          <TouchableOpacity
-            key={f}
-            onPress={() => setFilter(f)}
-            style={[styles.filterTab, filter === f && styles.filterTabActive]}
-          >
-            <Text
-              style={[
-                styles.filterTabText,
-                filter === f && styles.filterTabTextActive,
-              ]}
+        <View style={styles.filterRow}>
+          {["all", "active", "completed"].map((f) => (
+            <TouchableOpacity
+              key={f}
+              onPress={() => setFilter(f)}
+              style={[styles.filterTab, filter === f && styles.filterTabActive]}
             >
-              {f === "all" ? "Tout" : f === "active" ? "En cours" : "Terminé"}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+              <Text
+                style={[
+                  styles.filterTabText,
+                  filter === f && styles.filterTabTextActive,
+                ]}
+              >
+                {f === "all" ? "Tout" : f === "active" ? "En cours" : "Terminé"}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      {/* Filtre catégorie */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ marginBottom: 8 }}
-        contentContainerStyle={{ paddingHorizontal: 20, gap: 6 }}
-      >
-        <TouchableOpacity
-          onPress={() => setFilterCat("all")}
-          style={[
-            styles.catPill,
-            filterCat === "all"
-              ? { backgroundColor: isDark ? "#EDE8E0" : "#1A1220" }
-              : { backgroundColor: isDark ? "#2A2A42" : "#E8E0D8" },
-          ]}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginBottom: 8 }}
+          contentContainerStyle={{ paddingHorizontal: 20, gap: 6 }}
         >
-          <Text
-            style={[
-              styles.catPillText,
-              {
-                color:
-                  filterCat === "all"
-                    ? isDark
-                      ? "#1A1220"
-                      : "#EDE8E0"
-                    : C.textMuted,
-              },
-            ]}
-          >
-            Toutes
-          </Text>
-        </TouchableOpacity>
-        {CATEGORIES.map((cat) => (
           <TouchableOpacity
-            key={cat.id}
-            onPress={() => setFilterCat(cat.id)}
+            onPress={() => setFilterCat("all")}
             style={[
               styles.catPill,
-              filterCat === cat.id
-                ? { backgroundColor: cat.color }
-                : { backgroundColor: isDark ? "#2A2A42" : cat.bg },
+              filterCat === "all"
+                ? { backgroundColor: isDark ? "#EDE8E0" : "#1A1220" }
+                : { backgroundColor: isDark ? "#2A2A42" : "#E8E0D8" },
             ]}
           >
             <Text
               style={[
                 styles.catPillText,
-                { color: filterCat === cat.id ? "#fff" : cat.color },
+                {
+                  color:
+                    filterCat === "all"
+                      ? isDark
+                        ? "#1A1220"
+                        : "#EDE8E0"
+                      : C.textMuted,
+                },
               ]}
             >
-              {cat.name}
+              Toutes
             </Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Liste */}
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
-        renderItem={({ item }) => {
-          const cat = getCat(item.categoryId);
-          const overdue = !item.completed && isOverdue(item.dueDate);
-          return (
-            <View style={[styles.todoCard, overdue && styles.overdueCard]}>
-              <View
-                style={[styles.catStripe, { backgroundColor: cat.color }]}
-              />
-              <TouchableOpacity
-                onPress={() => toggleTodo(item.id)}
+          {CATEGORIES.map((cat) => (
+            <TouchableOpacity
+              key={cat.id}
+              onPress={() => setFilterCat(cat.id)}
+              style={[
+                styles.catPill,
+                filterCat === cat.id
+                  ? { backgroundColor: cat.color }
+                  : { backgroundColor: isDark ? "#2A2A42" : cat.bg },
+              ]}
+            >
+              <Text
                 style={[
-                  styles.checkbox,
-                  { borderColor: cat.color },
-                  item.completed && { backgroundColor: cat.color },
+                  styles.catPillText,
+                  { color: filterCat === cat.id ? "#fff" : cat.color },
                 ]}
               >
-                {item.completed && (
-                  <Text
-                    style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}
-                  >
-                    ✓
-                  </Text>
-                )}
-              </TouchableOpacity>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.todoText, item.completed && styles.done]}>
-                  {item.text}
-                </Text>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                    marginTop: 4,
-                  }}
-                >
-                  <Text style={[styles.catLabel, { color: cat.color }]}>
-                    {cat.name}
-                  </Text>
-                  {item.dueDate && (
-                    <Text
-                      style={[
-                        styles.dateLabel,
-                        { color: overdue ? "#EF4444" : C.textMuted },
-                      ]}
-                    >
-                      {overdue ? "⚠ " : ""}
-                      {formatDate(item.dueDate)}
-                    </Text>
-                  )}
-                </View>
-              </View>
-              <TouchableOpacity
-                onPress={() => deleteTodo(item.id)}
-                style={styles.delBtn}
-              >
-                <Text style={styles.delText}>✕</Text>
-              </TouchableOpacity>
+                {cat.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+          renderItem={({ item }) => (
+            <TodoRow
+              item={item}
+              onToggle={toggleTodo}
+              onDelete={deleteTodo}
+              C={C}
+              styles={styles}
+            />
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyIcon}>○</Text>
+              <Text style={styles.emptyText}>Aucune tâche ici</Text>
             </View>
-          );
-        }}
-        ListEmptyComponent={
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyIcon}>○</Text>
-            <Text style={styles.emptyText}>Aucune tâche ici</Text>
-          </View>
-        }
-      />
-    </SafeAreaView>
+          }
+        />
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
 
@@ -496,7 +518,6 @@ const getStyles = (isDark, C) =>
       paddingVertical: 4,
       marginBottom: 10,
     },
-    inputMiddle: { marginBottom: 10 },
     inputBottom: { flexDirection: "row", alignItems: "center", gap: 8 },
     addBtn: {
       width: 40,
@@ -520,7 +541,6 @@ const getStyles = (isDark, C) =>
       backgroundColor: isDark ? "#2A2A42" : "#F0EBE3",
     },
     datePillText: { fontSize: 12, fontWeight: "600" },
-    clearDate: { padding: 4 },
     pickerCard: {
       marginHorizontal: 16,
       marginBottom: 12,
@@ -602,8 +622,15 @@ const getStyles = (isDark, C) =>
     done: { textDecorationLine: "line-through", color: C.textMuted },
     catLabel: { fontSize: 11, fontWeight: "600", letterSpacing: 0.3 },
     dateLabel: { fontSize: 11, fontWeight: "500" },
-    delBtn: { padding: 4 },
-    delText: { color: C.textMuted, fontSize: 14 },
+    deleteAction: {
+      backgroundColor: "#EF4444",
+      justifyContent: "center",
+      alignItems: "center",
+      width: 90,
+      marginBottom: 8,
+      borderRadius: 14,
+    },
+    deleteActionText: { color: "#fff", fontSize: 13, fontWeight: "600" },
     emptyBox: { alignItems: "center", marginTop: 60 },
     emptyIcon: { fontSize: 32, color: C.textMuted, marginBottom: 10 },
     emptyText: { fontSize: 14, color: C.textMuted },
