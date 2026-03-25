@@ -10,9 +10,11 @@ import {
   Alert,
   useColorScheme,
   ScrollView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 const STORAGE_KEY = "@todos_v1";
 
@@ -30,9 +32,7 @@ const DARK = {
   text: "#EDE8E0",
   textMuted: "#6B6B8A",
   border: "#2A2A42",
-  inputBg: "#18182A",
 };
-
 const LIGHT = {
   bg: "#F5F0EA",
   card: "#FFFFFF",
@@ -40,7 +40,25 @@ const LIGHT = {
   text: "#1A1220",
   textMuted: "#9A8FA0",
   border: "#E8E0D8",
-  inputBg: "#FFFFFF",
+};
+
+const formatDate = (date) => {
+  if (!date) return null;
+  const d = new Date(date);
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+  if (d.toDateString() === today.toDateString()) return "Aujourd'hui";
+  if (d.toDateString() === tomorrow.toDateString()) return "Demain";
+  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+};
+
+const isOverdue = (date) => {
+  if (!date) return false;
+  const d = new Date(date);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d < today;
 };
 
 export default function TodoApp() {
@@ -53,6 +71,9 @@ export default function TodoApp() {
   const [filter, setFilter] = useState("all");
   const [selectedCat, setSelectedCat] = useState(CATEGORIES[0].id);
   const [filterCat, setFilterCat] = useState("all");
+  const [dueDate, setDueDate] = useState(null);
+  const [showPicker, setShowPicker] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
 
   useEffect(() => {
     (async () => {
@@ -73,11 +94,13 @@ export default function TodoApp() {
         text: inputText.trim(),
         completed: false,
         categoryId: selectedCat,
+        dueDate: dueDate ? dueDate.toISOString() : null,
       },
     ];
     setTodos(next);
     save(next);
     setInputText("");
+    setDueDate(null);
   };
 
   const toggleTodo = (id) => {
@@ -138,7 +161,7 @@ export default function TodoApp() {
         </View>
       </View>
 
-      {/* Input */}
+      {/* Input card */}
       <View style={styles.inputCard}>
         <TextInput
           style={styles.input}
@@ -149,11 +172,13 @@ export default function TodoApp() {
           onSubmitEditing={addTodo}
           returnKeyType="done"
         />
-        <View style={styles.inputBottom}>
+
+        {/* Ligne catégories + date */}
+        <View style={styles.inputMiddle}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 6 }}
+            contentContainerStyle={{ gap: 6, flex: 0 }}
           >
             {CATEGORIES.map((cat) => (
               <TouchableOpacity
@@ -177,6 +202,38 @@ export default function TodoApp() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+        </View>
+
+        {/* Ligne date + bouton + */}
+        <View style={styles.inputBottom}>
+          <TouchableOpacity
+            onPress={() => setShowPicker(true)}
+            style={[
+              styles.datePill,
+              dueDate && {
+                backgroundColor: activeCat.color + "22",
+                borderColor: activeCat.color,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.datePillText,
+                { color: dueDate ? activeCat.color : C.textMuted },
+              ]}
+            >
+              {dueDate ? `📅 ${formatDate(dueDate)}` : "+ Date"}
+            </Text>
+          </TouchableOpacity>
+          {dueDate && (
+            <TouchableOpacity
+              onPress={() => setDueDate(null)}
+              style={styles.clearDate}
+            >
+              <Text style={{ color: C.textMuted, fontSize: 13 }}>✕</Text>
+            </TouchableOpacity>
+          )}
+          <View style={{ flex: 1 }} />
           <TouchableOpacity
             style={[styles.addBtn, { backgroundColor: activeCat.color }]}
             onPress={addTodo}
@@ -185,6 +242,60 @@ export default function TodoApp() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Date Picker iOS */}
+      {showPicker && Platform.OS === "ios" && (
+        <View style={styles.pickerCard}>
+          <DateTimePicker
+            value={tempDate}
+            mode="date"
+            display="inline"
+            minimumDate={new Date()}
+            onChange={(e, date) => {
+              if (date) setTempDate(date);
+            }}
+            themeVariant={isDark ? "dark" : "light"}
+          />
+          <View style={styles.pickerBtns}>
+            <TouchableOpacity
+              onPress={() => setShowPicker(false)}
+              style={styles.pickerCancel}
+            >
+              <Text style={{ color: C.textMuted, fontWeight: "500" }}>
+                Annuler
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                setDueDate(tempDate);
+                setShowPicker(false);
+              }}
+              style={[
+                styles.pickerConfirm,
+                { backgroundColor: activeCat.color },
+              ]}
+            >
+              <Text style={{ color: "#fff", fontWeight: "600" }}>
+                Confirmer
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Date Picker Android */}
+      {showPicker && Platform.OS === "android" && (
+        <DateTimePicker
+          value={tempDate}
+          mode="date"
+          display="default"
+          minimumDate={new Date()}
+          onChange={(e, date) => {
+            setShowPicker(false);
+            if (date) setDueDate(date);
+          }}
+        />
+      )}
 
       {/* Filtres statut */}
       <View style={styles.filterRow}>
@@ -268,8 +379,9 @@ export default function TodoApp() {
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
         renderItem={({ item }) => {
           const cat = getCat(item.categoryId);
+          const overdue = !item.completed && isOverdue(item.dueDate);
           return (
-            <View style={styles.todoCard}>
+            <View style={[styles.todoCard, overdue && styles.overdueCard]}>
               <View
                 style={[styles.catStripe, { backgroundColor: cat.color }]}
               />
@@ -293,9 +405,29 @@ export default function TodoApp() {
                 <Text style={[styles.todoText, item.completed && styles.done]}>
                   {item.text}
                 </Text>
-                <Text style={[styles.catLabel, { color: cat.color }]}>
-                  {cat.name}
-                </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    marginTop: 4,
+                  }}
+                >
+                  <Text style={[styles.catLabel, { color: cat.color }]}>
+                    {cat.name}
+                  </Text>
+                  {item.dueDate && (
+                    <Text
+                      style={[
+                        styles.dateLabel,
+                        { color: overdue ? "#EF4444" : C.textMuted },
+                      ]}
+                    >
+                      {overdue ? "⚠ " : ""}
+                      {formatDate(item.dueDate)}
+                    </Text>
+                  )}
+                </View>
               </View>
               <TouchableOpacity
                 onPress={() => deleteTodo(item.id)}
@@ -320,7 +452,6 @@ export default function TodoApp() {
 const getStyles = (isDark, C) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg },
-
     header: {
       flexDirection: "row",
       justifyContent: "space-between",
@@ -340,7 +471,7 @@ const getStyles = (isDark, C) =>
       width: 56,
       height: 56,
       borderRadius: 28,
-      backgroundColor: isDark ? "#1E1E32" : "#FFFFFF",
+      backgroundColor: C.card,
       borderWidth: 1,
       borderColor: C.border,
       alignItems: "center",
@@ -348,7 +479,6 @@ const getStyles = (isDark, C) =>
     },
     statsNum: { fontSize: 18, fontWeight: "700", color: C.text },
     statsLabel: { fontSize: 9, color: C.textMuted, letterSpacing: 0.5 },
-
     inputCard: {
       marginHorizontal: 16,
       marginBottom: 16,
@@ -364,16 +494,16 @@ const getStyles = (isDark, C) =>
       fontSize: 15,
       color: C.text,
       paddingVertical: 4,
-      marginBottom: 12,
+      marginBottom: 10,
     },
-    inputBottom: { flexDirection: "row", alignItems: "center", gap: 10 },
+    inputMiddle: { marginBottom: 10 },
+    inputBottom: { flexDirection: "row", alignItems: "center", gap: 8 },
     addBtn: {
       width: 40,
       height: 40,
       borderRadius: 12,
       alignItems: "center",
       justifyContent: "center",
-      flexShrink: 0,
     },
     addBtnText: {
       color: "#fff",
@@ -381,7 +511,42 @@ const getStyles = (isDark, C) =>
       fontWeight: "300",
       lineHeight: 24,
     },
-
+    datePill: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: C.border,
+      backgroundColor: isDark ? "#2A2A42" : "#F0EBE3",
+    },
+    datePillText: { fontSize: 12, fontWeight: "600" },
+    clearDate: { padding: 4 },
+    pickerCard: {
+      marginHorizontal: 16,
+      marginBottom: 12,
+      backgroundColor: C.card,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: C.border,
+      padding: 12,
+    },
+    pickerBtns: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      gap: 10,
+      marginTop: 8,
+    },
+    pickerCancel: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 10,
+      backgroundColor: isDark ? "#2A2A42" : "#F0EBE3",
+    },
+    pickerConfirm: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 10,
+    },
     catPill: {
       paddingHorizontal: 12,
       paddingVertical: 5,
@@ -390,7 +555,6 @@ const getStyles = (isDark, C) =>
       justifyContent: "center",
     },
     catPillText: { fontSize: 12, fontWeight: "600", letterSpacing: 0.2 },
-
     filterRow: {
       flexDirection: "row",
       marginHorizontal: 16,
@@ -405,16 +569,9 @@ const getStyles = (isDark, C) =>
       borderRadius: 11,
       alignItems: "center",
     },
-    filterTabActive: {
-      backgroundColor: C.card,
-      shadowColor: "#000",
-      shadowOpacity: 0.06,
-      shadowRadius: 4,
-      shadowOffset: { width: 0, height: 2 },
-    },
+    filterTabActive: { backgroundColor: C.card },
     filterTabText: { fontSize: 13, color: C.textMuted, fontWeight: "500" },
     filterTabTextActive: { color: C.text, fontWeight: "600" },
-
     todoCard: {
       flexDirection: "row",
       alignItems: "center",
@@ -427,14 +584,11 @@ const getStyles = (isDark, C) =>
       padding: 14,
       overflow: "hidden",
     },
-    catStripe: {
-      position: "absolute",
-      left: 0,
-      top: 0,
-      bottom: 0,
-      width: 3,
-      borderRadius: 3,
+    overdueCard: {
+      borderColor: "#EF444444",
+      backgroundColor: isDark ? "#2A1818" : "#FFF5F5",
     },
+    catStripe: { position: "absolute", left: 0, top: 0, bottom: 0, width: 3 },
     checkbox: {
       width: 22,
       height: 22,
@@ -444,17 +598,12 @@ const getStyles = (isDark, C) =>
       justifyContent: "center",
       flexShrink: 0,
     },
-    todoText: {
-      fontSize: 15,
-      color: C.text,
-      fontWeight: "400",
-      marginBottom: 3,
-    },
+    todoText: { fontSize: 15, color: C.text, fontWeight: "400" },
     done: { textDecorationLine: "line-through", color: C.textMuted },
     catLabel: { fontSize: 11, fontWeight: "600", letterSpacing: 0.3 },
+    dateLabel: { fontSize: 11, fontWeight: "500" },
     delBtn: { padding: 4 },
     delText: { color: C.textMuted, fontSize: 14 },
-
     emptyBox: { alignItems: "center", marginTop: 60 },
     emptyIcon: { fontSize: 32, color: C.textMuted, marginBottom: 10 },
     emptyText: { fontSize: 14, color: C.textMuted },
