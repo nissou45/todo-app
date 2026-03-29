@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import HomeScreen from './screens/HomeScreen';
 import DetailScreen from './screens/DetailScreen';
@@ -28,6 +29,7 @@ export default function App() {
   };
 
   return (
+    <SafeAreaProvider>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       {screen === 'home' && (
@@ -58,5 +60,6 @@ export default function App() {
         />
       )}
     </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
