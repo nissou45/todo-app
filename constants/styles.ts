@@ -3,7 +3,7 @@ import { ColorScheme } from '../types';
 
 export const getStyles = (isDark: boolean, C: ColorScheme) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: C.bg },
+    container: { flex: 1, backgroundColor: C.bg, overflow: 'hidden' },
     statsRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -97,6 +97,7 @@ export const getStyles = (isDark: boolean, C: ColorScheme) =>
       borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
+      alignSelf: 'flex-start',
     },
     catPillText: { fontSize: 12, fontWeight: '600', letterSpacing: 0.2 },
     filterRow: {
