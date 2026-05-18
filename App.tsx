@@ -1,65 +1,148 @@
 import React, { useState, useEffect } from 'react';
-import { StatusBar, useColorScheme } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useColorScheme, View, Platform, ActivityIndicator } from 'react-native';
+import { RootView } from 'react-native-gesture-handler';
+const FinalRootView = Platform.OS === 'web' ? View : RootView;
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
 import HomeScreen from './screens/HomeScreen';
 import DetailScreen from './screens/DetailScreen';
 import CategoriesScreen from './screens/CategoriesScreen';
+import AuthScreen from './screens/AuthScreen';
+import StatsScreen from './screens/StatsScreen';
 import { STORAGE_KEY, DARK, LIGHT } from './constants/theme';
-import { Todo, ScreenName } from './types';
+import { Todo, RootStackParamList } from './types';
+import { useNotifications } from './hooks/useNotifications';
+import { useAuth } from './hooks/useAuth';
+import { useSync } from './hooks/useSync';
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   const isDark = useColorScheme() === 'dark';
   const C = isDark ? DARK : LIGHT;
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [screen, setScreen] = useState<ScreenName>('home');
-  const [currentTodo, setCurrentTodo] = useState<Todo | null>(null);
+  const [isReady, setIsReady] = useState(false);
+  
+  const { registerForPushNotificationsAsync } = useNotifications();
+  const { user, loading: authLoading } = useAuth();
+  const { syncTodos } = useSync();
 
   useEffect(() => {
     (async () => {
+      await registerForPushNotificationsAsync();
+      
       const saved = await AsyncStorage.getItem(STORAGE_KEY);
-      if (saved) setTodos(JSON.parse(saved));
-    })();
-  }, []);
+      let localTodos: Todo[] = [];
+      
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        localTodos = parsed.map((t: any) => ({
+          ...t,
+          reminderEnabled: t.reminderEnabled ?? false,
+          updatedAt: t.updatedAt ?? new Date().toISOString(),
+          pomodoroCount: t.pomodoroCount ?? 0,
+        }));
+      }
 
-  const navigate = (screenName: ScreenName, todo: Todo | null = null) => {
-    setCurrentTodo(todo);
-    setScreen(screenName);
+      if (user) {
+        const merged = await syncTodos(localTodos, user.id);
+        setTodos(merged);
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      } else {
+        setTodos(localTodos);
+      }
+      
+      setIsReady(true);
+    })();
+  }, [user]);
+
+  const saveTodos = async (newTodos: Todo[]) => {
+    setTodos(newTodos);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newTodos));
+    
+    // Si connecté, sync en arrière-plan (optimiste)
+    if (user) {
+      syncTodos(newTodos, user.id);
+    }
   };
+
+  if (authLoading || !isReady) {
+    return (
+      <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator color="#7C3AED" size="large" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaProvider>
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      {screen === 'home' && (
-        <HomeScreen
-          todos={todos}
-          setTodos={setTodos}
-          navigate={navigate}
-          isDark={isDark}
-          C={C}
-        />
-      )}
-      {screen === 'detail' && currentTodo && (
-        <DetailScreen
-          todo={currentTodo}
-          todos={todos}
-          setTodos={setTodos}
-          navigate={navigate}
-          isDark={isDark}
-          C={C}
-        />
-      )}
-      {screen === 'categories' && (
-        <CategoriesScreen
-          todos={todos}
-          navigate={navigate}
-          isDark={isDark}
-          C={C}
-        />
-      )}
-    </GestureHandlerRootView>
+      <FinalRootView style={{ flex: 1 }}>
+        <NavigationContainer>
+          <Stack.Navigator
+            initialRouteName="Home"
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: C.bg },
+            }}
+          >
+            <Stack.Screen name="Home">
+              {(props) => (
+                <HomeScreen
+                  {...props}
+                  todos={todos}
+                  setTodos={saveTodos}
+                  isDark={isDark}
+                  C={C}
+                  user={user}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="Detail">
+              {(props) => (
+                <DetailScreen
+                  {...props}
+                  todos={todos}
+                  setTodos={saveTodos}
+                  isDark={isDark}
+                  C={C}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="Categories">
+              {(props) => (
+                <CategoriesScreen
+                  {...props}
+                  todos={todos}
+                  isDark={isDark}
+                  C={C}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="Auth">
+              {(props) => (
+                <AuthScreen
+                  {...props}
+                  isDark={isDark}
+                  C={C}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="Stats">
+              {(props) => (
+                <StatsScreen
+                  {...props}
+                  todos={todos}
+                  isDark={isDark}
+                  C={C}
+                />
+              )}
+            </Stack.Screen>
+          </Stack.Navigator>
+        </NavigationContainer>
+      </FinalRootView>
     </SafeAreaProvider>
   );
 }

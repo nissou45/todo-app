@@ -4,6 +4,9 @@ export interface Todo {
   completed: boolean;
   categoryId: string;
   dueDate: string | null;
+  reminderEnabled: boolean;
+  updatedAt: string;
+  pomodoroCount: number;
 }
 
 export interface Category {
@@ -21,5 +24,13 @@ export interface ColorScheme {
   border: string;
 }
 
-export type ScreenName = 'home' | 'detail' | 'categories';
+export type ScreenName = 'home' | 'detail' | 'categories' | 'auth' | 'stats';
 export type NavigateFn = (screen: ScreenName, todo?: Todo | null) => void;
+
+export type RootStackParamList = {
+  Home: undefined;
+  Detail: { todoId: string };
+  Categories: undefined;
+  Auth: undefined;
+  Stats: undefined;
+};
