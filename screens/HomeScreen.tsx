@@ -3,33 +3,44 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   FlatList,
   ScrollView,
   Platform,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Header from '../components/Header';
 import TodoRow from '../components/TodoRow';
-import { CATEGORIES, STORAGE_KEY } from '../constants/theme';
+import { CATEGORIES } from '../constants/theme';
 import { formatDate } from '../utils/dateHelpers';
 import { getStyles } from '../constants/styles';
-import { Todo, ColorScheme, NavigateFn } from '../types';
+import { Todo, ColorScheme, RootStackParamList } from '../types';
+import { useNotifications } from '../hooks/useNotifications';
 
-interface HomeScreenProps {
+import { User } from '@supabase/supabase-js';
+import { useAuth } from '../hooks/useAuth';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Home'> & {
   todos: Todo[];
   setTodos: (todos: Todo[]) => void;
-  navigate: NavigateFn;
   isDark: boolean;
   C: ColorScheme;
-}
+  user: User | null;
+};
 
-export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: HomeScreenProps) {
+import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
+
+import SearchBar from '../components/SearchBar';
+
+export default function HomeScreen({ navigation, todos, setTodos, isDark, C, user }: Props) {
   const styles = getStyles(isDark, C);
+  const { signOut } = useAuth();
+  const { scheduleTodoNotification, cancelTodoNotification } = useNotifications();
   const [inputText, setInputText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [selectedCat, setSelectedCat] = useState(CATEGORIES[0].id);
   const [filterCat, setFilterCat] = useState('all');
@@ -37,33 +48,61 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: Hom
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState(new Date());
 
-  const save = (next: Todo[]) =>
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-
-  const addTodo = () => {
-    if (!inputText.trim()) return;
-    const next: Todo[] = [
-      ...todos,
-      {
-        id: Date.now().toString(),
-        text: inputText.trim(),
-        completed: false,
-        categoryId: selectedCat,
-        dueDate: dueDate ? dueDate.toISOString() : null,
-      },
-    ];
-    setTodos(next);
-    save(next);
-    setInputText('');
-    setDueDate(null);
+  const onDragEnd = ({ data }: { data: Todo[] }) => {
+    // Si on a des filtres actifs, le réordonnancement est complexe.
+    // Pour simplifier, on ne permet le drag que si "Tout" est sélectionné.
+    if (filter !== 'all' || filterCat !== 'all') return;
+    setTodos(data);
   };
 
-  const toggleTodo = (id: string) => {
-    const next = todos.map((t) =>
-      t.id === id ? { ...t, completed: !t.completed } : t,
-    );
+  const addTodo = async () => {
+    if (!inputText.trim()) return;
+    const now = new Date().toISOString();
+    const newTodo: Todo = {
+      id: Date.now().toString(),
+      text: inputText.trim(),
+      completed: false,
+      categoryId: selectedCat,
+      dueDate: dueDate ? dueDate.toISOString() : null,
+      reminderEnabled: !!dueDate,
+      updatedAt: now,
+    };
+    const next = [...todos, newTodo];
     setTodos(next);
-    save(next);
+    setInputText('');
+    setDueDate(null);
+
+    if (newTodo.reminderEnabled) {
+      await scheduleTodoNotification(newTodo);
+    }
+  };
+
+  const toggleTodo = async (id: string) => {
+    const now = new Date().toISOString();
+    const next = todos.map((t) => {
+      if (t.id === id) {
+        const updated = { ...t, completed: !t.completed, updatedAt: now };
+        if (updated.completed) {
+          cancelTodoNotification(id);
+        } else if (updated.reminderEnabled) {
+          scheduleTodoNotification(updated);
+        }
+        return updated;
+      }
+      return t;
+    });
+    setTodos(next);
+  };
+
+  const handleProfilePress = () => {
+    if (user) {
+      Alert.alert('Profil', `Connecté en tant que ${user.email}`, [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Se déconnecter', style: 'destructive', onPress: signOut },
+      ]);
+    } else {
+      navigation.navigate('Auth');
+    }
   };
 
   const deleteTodo = (id: string) =>
@@ -75,7 +114,7 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: Hom
         onPress: () => {
           const next = todos.filter((t) => t.id !== id);
           setTodos(next);
-          save(next);
+          cancelTodoNotification(id);
         },
       },
     ]);
@@ -88,7 +127,8 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: Hom
           ? t.completed
           : true;
     const matchCat = filterCat === 'all' || t.categoryId === filterCat;
-    return matchStatus && matchCat;
+    const matchSearch = t.text.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchStatus && matchCat && matchSearch;
   });
 
   const remaining = todos.filter((t) => !t.completed).length;
@@ -100,21 +140,33 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: Hom
       <Header
         title="Mes tâches"
         C={C}
-        onRight={() => navigate('categories')}
+        onLeft={handleProfilePress}
+        leftLabel={user ? '👤' : '🔑'}
+        onRight={() => navigation.navigate('Categories')}
         rightLabel="⚙ Catégories"
       />
 
-      <View style={styles.statsRow}>
-        <Text style={styles.subtitle}>
-          {remaining === 0 ? 'Tout est fait !' : `${remaining} à compléter`}
-        </Text>
+      <Pressable
+        style={styles.statsRow}
+        onPress={() => navigation.navigate('Stats')}
+      >
+        <View>
+          <Text style={styles.subtitle}>
+            {remaining === 0 ? 'Tout est fait !' : `${remaining} à compléter`}
+          </Text>
+          <Text style={{ fontSize: 11, color: '#7C3AED', fontWeight: '600', marginTop: 2 }}>
+            Voir les stats ›
+          </Text>
+        </View>
         <View style={styles.statsCircle}>
           <Text style={styles.statsNum}>
             {todos.filter((t) => t.completed).length}
           </Text>
           <Text style={styles.statsLabel}>faites</Text>
         </View>
-      </View>
+      </Pressable>
+
+      <SearchBar value={searchQuery} onChangeText={setSearchQuery} C={C} />
 
       <View style={styles.inputCard}>
         <TextInput
@@ -133,7 +185,7 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: Hom
           contentContainerStyle={{ gap: 6 }}
         >
           {CATEGORIES.map((cat) => (
-            <TouchableOpacity
+            <Pressable
               key={cat.id}
               onPress={() => setSelectedCat(cat.id)}
               style={[
@@ -151,11 +203,11 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: Hom
               >
                 {cat.name}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </ScrollView>
         <View style={styles.inputBottom}>
-          <TouchableOpacity
+          <Pressable
             onPress={() => setShowPicker(true)}
             style={[
               styles.datePill,
@@ -173,19 +225,19 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: Hom
             >
               {dueDate ? `📅 ${formatDate(dueDate)}` : '+ Date'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
           {dueDate && (
-            <TouchableOpacity onPress={() => setDueDate(null)}>
+            <Pressable onPress={() => setDueDate(null)}>
               <Text style={{ color: C.textMuted, fontSize: 13 }}>✕</Text>
-            </TouchableOpacity>
+            </Pressable>
           )}
           <View style={{ flex: 1 }} />
-          <TouchableOpacity
+          <Pressable
             style={[styles.addBtn, { backgroundColor: activeCat.color }]}
             onPress={addTodo}
           >
             <Text style={styles.addBtnText}>+</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
 
@@ -202,15 +254,15 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: Hom
             themeVariant={isDark ? 'dark' : 'light'}
           />
           <View style={styles.pickerBtns}>
-            <TouchableOpacity
+            <Pressable
               onPress={() => setShowPicker(false)}
               style={styles.pickerCancel}
             >
               <Text style={{ color: C.textMuted, fontWeight: '500' }}>
                 Annuler
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
               onPress={() => {
                 setDueDate(tempDate);
                 setShowPicker(false);
@@ -223,7 +275,7 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: Hom
               <Text style={{ color: '#fff', fontWeight: '600' }}>
                 Confirmer
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       )}
@@ -242,7 +294,7 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: Hom
 
       <View style={styles.filterRow}>
         {(['all', 'active', 'completed'] as const).map((f) => (
-          <TouchableOpacity
+          <Pressable
             key={f}
             onPress={() => setFilter(f)}
             style={[styles.filterTab, filter === f && styles.filterTabActive]}
@@ -255,7 +307,7 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: Hom
             >
               {f === 'all' ? 'Tout' : f === 'active' ? 'En cours' : 'Terminé'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         ))}
       </View>
 
@@ -265,7 +317,7 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: Hom
         style={{ marginBottom: 8 }}
         contentContainerStyle={{ paddingHorizontal: 20, gap: 6 }}
       >
-        <TouchableOpacity
+        <Pressable
           onPress={() => setFilterCat('all')}
           style={[
             styles.catPill,
@@ -289,9 +341,9 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: Hom
           >
             Toutes
           </Text>
-        </TouchableOpacity>
+        </Pressable>
         {CATEGORIES.map((cat) => (
-          <TouchableOpacity
+          <Pressable
             key={cat.id}
             onPress={() => setFilterCat(cat.id)}
             style={[
@@ -309,20 +361,24 @@ export default function HomeScreen({ todos, setTodos, navigate, isDark, C }: Hom
             >
               {cat.name}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         ))}
       </ScrollView>
 
-      <FlatList
+      <DraggableFlatList
         data={filtered}
+        onDragEnd={onDragEnd}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
-        renderItem={({ item }) => (
+        renderItem={({ item, drag, isActive }: RenderItemParams<Todo>) => (
           <TodoRow
             item={item}
             onToggle={toggleTodo}
             onDelete={deleteTodo}
-            onPress={(todo) => navigate('detail', todo)}
+            onPress={(todo) => navigation.navigate('Detail', { todoId: todo.id })}
+            drag={drag}
+            isActive={isActive}
+            searchQuery={searchQuery}
             C={C}
             styles={styles}
           />

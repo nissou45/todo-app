@@ -3,54 +3,79 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
   Platform,
   Alert,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Header from '../components/Header';
-import { CATEGORIES, STORAGE_KEY } from '../constants/theme';
+import { CATEGORIES } from '../constants/theme';
 import { formatDate } from '../utils/dateHelpers';
 import { getStyles } from '../constants/styles';
-import { Todo, ColorScheme, NavigateFn } from '../types';
+import { Todo, ColorScheme, RootStackParamList } from '../types';
+import { useNotifications } from '../hooks/useNotifications';
 
-interface DetailScreenProps {
-  todo: Todo;
+type Props = NativeStackScreenProps<RootStackParamList, 'Detail'> & {
   todos: Todo[];
   setTodos: (todos: Todo[]) => void;
-  navigate: NavigateFn;
   isDark: boolean;
   C: ColorScheme;
-}
+};
 
-export default function DetailScreen({ todo, todos, setTodos, navigate, isDark, C }: DetailScreenProps) {
+import PomodoroTimer from '../components/PomodoroTimer';
+
+export default function DetailScreen({ route, navigation, todos, setTodos, isDark, C }: Props) {
+  const { todoId } = route.params;
+  const todo = todos.find((t) => t.id === todoId);
   const styles = getStyles(isDark, C);
+  const { scheduleTodoNotification, cancelTodoNotification } = useNotifications();
+
+  if (!todo) {
+    navigation.goBack();
+    return null;
+  }
+
   const [text, setText] = useState(todo.text);
   const [categoryId, setCategoryId] = useState(todo.categoryId || '1');
   const [dueDate, setDueDate] = useState<Date | null>(
     todo.dueDate ? new Date(todo.dueDate) : null,
   );
+  const [reminderEnabled, setReminderEnabled] = useState(todo.reminderEnabled);
+  const [pomodoroCount, setPomodoroCount] = useState(todo.pomodoroCount || 0);
   const [showPicker, setShowPicker] = useState(false);
-  const [tempDate, setTempDate] = useState(new Date());
-  const cat = CATEGORIES.find((c) => c.id === categoryId) || CATEGORIES[0];
+  const [tempDate, setTempDate] = useState(dueDate || new Date());
+
+  const handlePomodoroComplete = () => {
+    setPomodoroCount((prev) => prev + 1);
+    // On pourrait sauvegarder immédiatement ici aussi
+  };
 
   const save = async () => {
-    const next = todos.map((t) =>
-      t.id === todo.id
-        ? {
-            ...t,
-            text,
-            categoryId,
-            dueDate: dueDate ? dueDate.toISOString() : null,
-          }
-        : t,
-    );
+    const updatedTodo: Todo = {
+      ...todo,
+      text,
+      categoryId,
+      dueDate: dueDate ? dueDate.toISOString() : null,
+      reminderEnabled,
+      pomodoroCount,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const next = todos.map((t) => (t.id === todo.id ? updatedTodo : t));
     setTodos(next);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    navigate('home');
+
+    // Gérer les notifications
+    if (updatedTodo.completed) {
+      await cancelTodoNotification(todo.id);
+    } else {
+      await scheduleTodoNotification(updatedTodo);
+    }
+
+    navigation.goBack();
   };
 
   const deleteTodo = () =>
@@ -62,8 +87,8 @@ export default function DetailScreen({ todo, todos, setTodos, navigate, isDark, 
         onPress: async () => {
           const next = todos.filter((t) => t.id !== todo.id);
           setTodos(next);
-          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-          navigate('home');
+          await cancelTodoNotification(todo.id);
+          navigation.goBack();
         },
       },
     ]);
@@ -72,7 +97,7 @@ export default function DetailScreen({ todo, todos, setTodos, navigate, isDark, 
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <Header
         title="Détail"
-        onBack={() => navigate('home')}
+        onBack={() => navigation.goBack()}
         onRight={save}
         rightLabel="Sauvegarder"
         C={C}
@@ -88,16 +113,9 @@ export default function DetailScreen({ todo, todos, setTodos, navigate, isDark, 
         />
 
         <Text style={styles.detailLabel}>Catégorie</Text>
-        <View
-          style={{
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: 8,
-            marginBottom: 20,
-          }}
-        >
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
           {CATEGORIES.map((c) => (
-            <TouchableOpacity
+            <Pressable
               key={c.id}
               onPress={() => setCategoryId(c.id)}
               style={[
@@ -115,36 +133,48 @@ export default function DetailScreen({ todo, todos, setTodos, navigate, isDark, 
               >
                 {c.name}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
 
         <Text style={styles.detailLabel}>Date d'échéance</Text>
-        <TouchableOpacity
-          onPress={() => setShowPicker(true)}
-          style={[
-            styles.datePill,
-            { marginBottom: 8 },
-            dueDate && { borderColor: cat.color },
-          ]}
-        >
-          <Text
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+          <Pressable
+            onPress={() => setShowPicker(true)}
             style={[
-              styles.datePillText,
-              { color: dueDate ? cat.color : C.textMuted },
+              styles.datePill,
+              { flex: 1 },
+              dueDate && { borderColor: cat.color },
             ]}
           >
-            {dueDate ? `📅 ${formatDate(dueDate)}` : '+ Ajouter une date'}
-          </Text>
-        </TouchableOpacity>
-        {dueDate && (
-          <TouchableOpacity onPress={() => setDueDate(null)}>
             <Text
-              style={{ color: C.textMuted, fontSize: 13, marginBottom: 20 }}
+              style={[
+                styles.datePillText,
+                { color: dueDate ? cat.color : C.textMuted },
+              ]}
             >
+              {dueDate ? `📅 ${formatDate(dueDate)}` : '+ Ajouter une date'}
+            </Text>
+          </Pressable>
+          {dueDate && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ color: C.text, fontSize: 13 }}>Rappel</Text>
+              <Switch
+                value={reminderEnabled}
+                onValueChange={setReminderEnabled}
+                trackColor={{ false: C.border, true: cat.color + '88' }}
+                thumbColor={reminderEnabled ? cat.color : '#f4f3f4'}
+              />
+            </View>
+          )}
+        </View>
+
+        {dueDate && (
+          <Pressable onPress={() => { setDueDate(null); setReminderEnabled(false); }}>
+            <Text style={{ color: C.textMuted, fontSize: 13, marginBottom: 20 }}>
               Supprimer la date
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
 
         {showPicker && Platform.OS === 'ios' && (
@@ -160,17 +190,18 @@ export default function DetailScreen({ todo, todos, setTodos, navigate, isDark, 
               themeVariant={isDark ? 'dark' : 'light'}
             />
             <View style={styles.pickerBtns}>
-              <TouchableOpacity
+              <Pressable
                 onPress={() => setShowPicker(false)}
                 style={styles.pickerCancel}
               >
                 <Text style={{ color: C.textMuted, fontWeight: '500' }}>
                   Annuler
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </Pressable>
+              <Pressable
                 onPress={() => {
                   setDueDate(tempDate);
+                  if (!reminderEnabled) setReminderEnabled(true);
                   setShowPicker(false);
                 }}
                 style={[styles.pickerConfirm, { backgroundColor: cat.color }]}
@@ -178,7 +209,7 @@ export default function DetailScreen({ todo, todos, setTodos, navigate, isDark, 
                 <Text style={{ color: '#fff', fontWeight: '600' }}>
                   Confirmer
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         )}
@@ -190,10 +221,20 @@ export default function DetailScreen({ todo, todos, setTodos, navigate, isDark, 
             minimumDate={new Date()}
             onChange={(_e: DateTimePickerEvent, date?: Date) => {
               setShowPicker(false);
-              if (date) setDueDate(date);
+              if (date) {
+                setDueDate(date);
+                if (!reminderEnabled) setReminderEnabled(true);
+              }
             }}
           />
         )}
+
+        <Text style={styles.detailLabel}>Mode Pomodoro</Text>
+        <View style={{ marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={{ fontSize: 16 }}>🍅</Text>
+          <Text style={{ color: C.text, fontWeight: '600' }}>{pomodoroCount} sessions terminées</Text>
+        </View>
+        <PomodoroTimer onSessionComplete={handlePomodoroComplete} C={C} isDark={isDark} />
 
         <Text style={styles.detailLabel}>Statut</Text>
         <View
@@ -216,16 +257,16 @@ export default function DetailScreen({ todo, todos, setTodos, navigate, isDark, 
           </Text>
         </View>
 
-        <TouchableOpacity
+        <Pressable
           style={[styles.saveBtn, { backgroundColor: cat.color }]}
           onPress={save}
         >
           <Text style={styles.saveBtnText}>Enregistrer</Text>
-        </TouchableOpacity>
+        </Pressable>
 
-        <TouchableOpacity style={styles.deleteBtn} onPress={deleteTodo}>
+        <Pressable style={styles.deleteBtn} onPress={deleteTodo}>
           <Text style={styles.deleteBtnText}>Supprimer la tâche</Text>
-        </TouchableOpacity>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
