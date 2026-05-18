@@ -1,0 +1,72 @@
+import { useState, useEffect, useRef } from 'react';
+import * as Notifications from 'expo-notifications';
+import * as Haptics from 'expo-haptics';
+
+export const usePomodoro = (onComplete: () => void) => {
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [isActive, setIsActive] = useState(false);
+  const [mode, setMode] = useState<'work' | 'break'>('work');
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (isActive && timeLeft > 0) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      handleComplete();
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isActive, timeLeft]);
+
+  const handleComplete = async () => {
+    setIsActive(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    
+    const nextMode = mode === 'work' ? 'break' : 'work';
+    const nextTime = nextMode === 'work' ? 25 * 60 : 5 * 60;
+    
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: mode === 'work' ? 'Travail terminé ! 🍅' : 'Pause terminée ! ☕',
+        body: mode === 'work' ? 'C\'est l\'heure de la pause.' : 'C\'est l\'heure de se remettre au travail.',
+      },
+      trigger: null,
+    });
+
+    if (mode === 'work') {
+      onComplete();
+    }
+
+    setMode(nextMode);
+    setTimeLeft(nextTime);
+  };
+
+  const toggleTimer = () => setIsActive(!isActive);
+
+  const resetTimer = () => {
+    setIsActive(false);
+    setMode('work');
+    setTimeLeft(25 * 60);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return {
+    timeLeft,
+    isActive,
+    mode,
+    toggleTimer,
+    resetTimer,
+    formatTime,
+  };
+};
