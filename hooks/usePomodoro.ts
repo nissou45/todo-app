@@ -7,6 +7,10 @@ export const usePomodoro = (onComplete: () => void) => {
   const [isActive, setIsActive] = useState(false);
   const [mode, setMode] = useState<'work' | 'break'>('work');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const modeRef = useRef(mode);
+  const onCompleteRef = useRef(onComplete);
+  modeRef.current = mode;
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     if (isActive && timeLeft > 0) {
@@ -28,19 +32,20 @@ export const usePomodoro = (onComplete: () => void) => {
     setIsActive(false);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     
-    const nextMode = mode === 'work' ? 'break' : 'work';
+    const currentMode = modeRef.current;
+    const nextMode = currentMode === 'work' ? 'break' : 'work';
     const nextTime = nextMode === 'work' ? 25 * 60 : 5 * 60;
     
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: mode === 'work' ? 'Travail terminé ! 🍅' : 'Pause terminée ! ☕',
-        body: mode === 'work' ? 'C\'est l\'heure de la pause.' : 'C\'est l\'heure de se remettre au travail.',
+        title: currentMode === 'work' ? 'Travail terminé ! 🍅' : 'Pause terminée ! ☕',
+        body: currentMode === 'work' ? 'C\'est l\'heure de la pause.' : 'C\'est l\'heure de se remettre au travail.',
       },
       trigger: null,
     });
 
-    if (mode === 'work') {
-      onComplete();
+    if (currentMode === 'work') {
+      onCompleteRef.current();
     }
 
     setMode(nextMode);

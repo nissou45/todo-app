@@ -24,7 +24,6 @@ import { getStyles } from '../constants/styles';
 import { Todo, ColorScheme, RootStackParamList } from '../types';
 import { useNotifications } from '../hooks/useNotifications';
 import { User } from '@supabase/supabase-js';
-import { useAuth } from '../hooks/useAuth';
 import TodoRow from '../components/TodoRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'> & {
@@ -33,6 +32,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'> & {
   isDark: boolean;
   C: ColorScheme;
   user: User | null;
+  onSignOut?: () => void;
 };
 
 type Period = 'matin' | 'aprem' | 'soir' | 'none';
@@ -100,9 +100,8 @@ function TimeSection({ period, tasks, onToggle, onDelete, onPress, C, styles }: 
   );
 }
 
-export default function HomeScreen({ navigation, todos, setTodos, isDark, C, user }: Props) {
+export default function HomeScreen({ navigation, todos, setTodos, isDark, C, user, onSignOut }: Props) {
   const styles = getStyles(isDark, C);
-  const { signOut } = useAuth();
   const { scheduleTodoNotification, cancelTodoNotification } = useNotifications();
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -157,7 +156,7 @@ export default function HomeScreen({ navigation, todos, setTodos, isDark, C, use
     if (user) {
       Alert.alert('Profil', `Connecté en tant que ${user.email}`, [
         { text: 'Annuler', style: 'cancel' },
-        { text: 'Se déconnecter', style: 'destructive', onPress: signOut },
+        { text: 'Se déconnecter', style: 'destructive', onPress: onSignOut },
       ]);
     } else {
       navigation.navigate('Auth');

@@ -36,7 +36,7 @@ export default function App() {
   const [isReady, setIsReady] = useState(false);
 
   const { registerForPushNotificationsAsync } = useNotifications();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { syncTodos } = useSync();
 
   useEffect(() => {
@@ -112,6 +112,7 @@ export default function App() {
                   isDark={isDark}
                   C={C}
                   user={user}
+                  onSignOut={signOut}
                 />
               )}
             </Stack.Screen>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -57,20 +57,21 @@ export default function DetailScreen({ route, navigation, todos, setTodos, isDar
   const styles = getStyles(isDark, C);
   const { scheduleTodoNotification, cancelTodoNotification } = useNotifications();
 
-  if (!todo) {
-    navigation.goBack();
-    return null;
-  }
+  useEffect(() => {
+    if (!todo) navigation.goBack();
+  }, [todo, navigation]);
 
-  const [text, setText] = useState(todo.text);
-  const [categoryId, setCategoryId] = useState(todo.categoryId || CATEGORIES[0].id);
+  const [text, setText] = useState(todo?.text ?? '');
+  const [categoryId, setCategoryId] = useState(todo?.categoryId || CATEGORIES[0].id);
   const [dueDate, setDueDate] = useState<Date | null>(
-    todo.dueDate ? new Date(todo.dueDate) : null,
+    todo?.dueDate ? new Date(todo.dueDate) : null,
   );
-  const [reminderEnabled, setReminderEnabled] = useState(todo.reminderEnabled);
-  const [pomodoroCount, setPomodoroCount] = useState(todo.pomodoroCount || 0);
+  const [reminderEnabled, setReminderEnabled] = useState(todo?.reminderEnabled ?? false);
+  const [pomodoroCount, setPomodoroCount] = useState(todo?.pomodoroCount || 0);
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState(dueDate || new Date());
+
+  if (!todo) return null;
 
   const cat = getCategory(categoryId);
 
