@@ -1,31 +1,41 @@
-import React, { useState, useEffect } from 'react';
-import { useColorScheme, View, Platform, ActivityIndicator } from 'react-native';
-import { RootView } from 'react-native-gesture-handler';
-const FinalRootView = Platform.OS === 'web' ? View : RootView;
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import React, { useState, useEffect } from "react";
+import {
+  useColorScheme,
+  View,
+  Platform,
+  ActivityIndicator,
+} from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+const FinalRootView = Platform.OS === "web" ? View : GestureHandlerRootView;
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import HomeScreen from './screens/HomeScreen';
-import DetailScreen from './screens/DetailScreen';
-import CategoriesScreen from './screens/CategoriesScreen';
-import AuthScreen from './screens/AuthScreen';
-import StatsScreen from './screens/StatsScreen';
-import { STORAGE_KEY, DARK, LIGHT } from './constants/theme';
-import { Todo, RootStackParamList } from './types';
-import { useNotifications } from './hooks/useNotifications';
-import { useAuth } from './hooks/useAuth';
-import { useSync } from './hooks/useSync';
+import HomeScreen from "./screens/HomeScreen";
+import DetailScreen from "./screens/DetailScreen";
+import CategoriesScreen from "./screens/CategoriesScreen";
+import AuthScreen from "./screens/AuthScreen";
+import StatsScreen from "./screens/StatsScreen";
+import CalendarScreen from "./screens/CalendarScreen";
+import CreateScreen from "./screens/CreateScreen";
+import EmptyScreen from "./screens/EmptyScreen";
+import { STORAGE_KEY, DARK, LIGHT, COLORS } from "./constants/colors";
+import { useAppFonts } from "./constants/typography";
+import { Todo, RootStackParamList } from "./types";
+import { useNotifications } from "./hooks/useNotifications";
+import { useAuth } from "./hooks/useAuth";
+import { useSync } from "./hooks/useSync";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
-  const isDark = useColorScheme() === 'dark';
+  const [fontsLoaded] = useAppFonts();
+  const isDark = useColorScheme() === "dark";
   const C = isDark ? DARK : LIGHT;
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isReady, setIsReady] = useState(false);
-  
+
   const { registerForPushNotificationsAsync } = useNotifications();
   const { user, loading: authLoading } = useAuth();
   const { syncTodos } = useSync();
@@ -33,10 +43,10 @@ export default function App() {
   useEffect(() => {
     (async () => {
       await registerForPushNotificationsAsync();
-      
+
       const saved = await AsyncStorage.getItem(STORAGE_KEY);
       let localTodos: Todo[] = [];
-      
+
       if (saved) {
         const parsed = JSON.parse(saved);
         localTodos = parsed.map((t: any) => ({
@@ -54,7 +64,7 @@ export default function App() {
       } else {
         setTodos(localTodos);
       }
-      
+
       setIsReady(true);
     })();
   }, [user]);
@@ -62,17 +72,23 @@ export default function App() {
   const saveTodos = async (newTodos: Todo[]) => {
     setTodos(newTodos);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newTodos));
-    
-    // Si connecté, sync en arrière-plan (optimiste)
+
     if (user) {
       syncTodos(newTodos, user.id);
     }
   };
 
-  if (authLoading || !isReady) {
+  if (!fontsLoaded || authLoading || !isReady) {
     return (
-      <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator color="#7C3AED" size="large" />
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: COLORS.background,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ActivityIndicator color={COLORS.accent} size="large" />
       </View>
     );
   }
@@ -122,24 +138,22 @@ export default function App() {
               )}
             </Stack.Screen>
             <Stack.Screen name="Auth">
-              {(props) => (
-                <AuthScreen
-                  {...props}
-                  isDark={isDark}
-                  C={C}
-                />
-              )}
+              {(props) => <AuthScreen {...props} isDark={isDark} C={C} />}
             </Stack.Screen>
             <Stack.Screen name="Stats">
               {(props) => (
-                <StatsScreen
-                  {...props}
-                  todos={todos}
-                  isDark={isDark}
-                  C={C}
-                />
+                <StatsScreen {...props} todos={todos} isDark={isDark} C={C} />
               )}
             </Stack.Screen>
+            <Stack.Screen name="Calendar">
+              {(props) => (
+                <CalendarScreen {...props} todos={todos} isDark={isDark} C={C} />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="Create"
+              component={CreateScreen}
+              options={{ presentation: 'transparentModal', animation: 'fade' }}
+            />
           </Stack.Navigator>
         </NavigationContainer>
       </FinalRootView>

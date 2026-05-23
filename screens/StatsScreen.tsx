@@ -1,12 +1,16 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { VictoryBar, VictoryChart, VictoryAxis, VictoryPie, VictoryTheme } from 'victory-native';
-import Header from '../components/Header';
-import { CATEGORIES } from '../constants/theme';
-import { getStyles } from '../constants/styles';
+import Svg, { Circle } from 'react-native-svg';
+import Icon from '../components/Icon';
+import TabBar from '../components/TabBar';
+import { COLORS, CATEGORIES } from '../constants/colors';
+import { FONTS } from '../constants/typography';
+import { SHADOWS } from '../constants/shadows';
 import { Todo, ColorScheme, RootStackParamList } from '../types';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Stats'> & {
   todos: Todo[];
@@ -14,199 +18,222 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Stats'> & {
   C: ColorScheme;
 };
 
-const { width } = Dimensions.get('window');
+const WEEK = [
+  { d: 'L', v: 0.6 }, { d: 'M', v: 0.8 }, { d: 'M', v: 0.45 },
+  { d: 'J', v: 0.9, today: true }, { d: 'V', v: 0.3, future: true },
+  { d: 'S', v: 0.0, future: true }, { d: 'D', v: 0.0, future: true },
+];
+const BAR_COLORS = ['#FF6B6B', '#FFE66D', '#4ECDC4', '#45B7D1', '#FF6B6B', '#FFE66D', '#4ECDC4'];
 
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
-
-export default function StatsScreen({ navigation, todos, isDark, C }: Props) {
-  const styles = getStyles(isDark, C);
-
-  const exportPDF = async () => {
-    const html = `
-      <html>
-        <head>
-          <style>
-            body { font-family: Helvetica, sans-serif; padding: 40px; color: #1A1220; }
-            h1 { color: #7C3AED; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #E8E0D8; padding: 12px; text-align: left; }
-            th { backgroundColor: #F5F0EA; }
-            .status { font-weight: bold; }
-            .completed { color: #047857; }
-            .pending { color: #7C3AED; }
-          </style>
-        </head>
-        <body>
-          <h1>Rapport de tâches - TodoApp</h1>
-          <p>Généré le ${new Date().toLocaleDateString()}</p>
-          <table>
-            <thead>
-              <tr>
-                <th>Tâche</th>
-                <th>Catégorie</th>
-                <th>Statut</th>
-                <th>Échéance</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${todos.map(t => `
-                <tr>
-                  <td>${t.text}</td>
-                  <td>${CATEGORIES.find(c => c.id === t.categoryId)?.name || '-'}</td>
-                  <td class="status ${t.completed ? 'completed' : 'pending'}">
-                    ${t.completed ? 'Terminée' : 'En cours'}
-                  </td>
-                  <td>${t.dueDate ? new Date(t.dueDate).toLocaleDateString() : '-'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </body>
-      </html>
-    `;
-
-    try {
-      const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  // 1. Calcul des KPIs
-  const total = todos.length;
-  const completed = todos.filter((t) => t.completed).length;
-  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-  
-  const overdueCount = todos.filter(
-    (t) => !t.completed && t.dueDate && new Date(t.dueDate) < new Date()
-  ).length;
-
-  // Streak (approximatif based on updatedAt)
-  const streak = 0; // Serait mieux avec un historique, ici on peut juste simuler ou ignorer pour l'instant
-
-  // 2. Préparation des données pour Bar Chart (Complétées par semaine - 7 derniers jours)
-  const last7Days = [...Array(7)].map((_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    return d.toISOString().split('T')[0];
-  }).reverse();
-
-  const barData = last7Days.map((date) => {
-    const count = todos.filter(
-      (t) => t.completed && t.updatedAt?.split('T')[0] === date
-    ).length;
-    return { day: date.split('-')[2], count };
-  });
-
-  // 3. Préparation des données pour Pie Chart (Répartition par catégorie)
-  const pieData = CATEGORIES.map((cat) => {
-    const count = todos.filter((t) => t.categoryId === cat.id).length;
-    return { x: cat.name, y: count, fill: cat.color };
-  }).filter((d) => d.y > 0);
-
+function WeekBars() {
   return (
-    <SafeAreaView style={styles.container}>
-      <Header
-        title="Statistiques"
-        onBack={() => navigation.goBack()}
-        C={C}
-        onRight={exportPDF}
-        rightLabel="📄 PDF"
-      />
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
-        
-        {/* KPIs */}
-        <View style={s.kpiRow}>
-          <View style={[s.kpiCard, { backgroundColor: C.card, borderColor: C.border }]}>
-            <Text style={[s.kpiVal, { color: '#7C3AED' }]}>{completionRate}%</Text>
-            <Text style={[s.kpiLabel, { color: C.textMuted }]}>Complétion</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10, height: 130 }}>
+      {WEEK.map((d, i) => (
+        <View key={i} style={{ flex: 1, alignItems: 'center', height: '100%' }}>
+          <View style={{ flex: 1, width: '100%', justifyContent: 'flex-end' }}>
+            <View style={{
+              height: `${d.v * 100}%`, borderRadius: 8,
+              backgroundColor: d.future ? COLORS.border : BAR_COLORS[i],
+              opacity: d.future ? 0.6 : 1,
+            }} />
           </View>
-          <View style={[s.kpiCard, { backgroundColor: C.card, borderColor: C.border }]}>
-            <Text style={[s.kpiVal, { color: '#EF4444' }]}>{overdueCount}</Text>
-            <Text style={[s.kpiLabel, { color: C.textMuted }]}>En retard</Text>
-          </View>
-          <View style={[s.kpiCard, { backgroundColor: C.card, borderColor: C.border }]}>
-            <Text style={[s.kpiVal, { color: '#F59E0B' }]}>{completed}</Text>
-            <Text style={[s.kpiLabel, { color: C.textMuted }]}>Total fait</Text>
-          </View>
+          <Text style={{
+            marginTop: 8, fontFamily: FONTS.bodySemi, fontSize: 11,
+            color: d.today ? BAR_COLORS[i] : COLORS.textMuted,
+          }}>{d.d}</Text>
         </View>
-
-        {/* Bar Chart */}
-        <View style={[s.chartCard, { backgroundColor: C.card, borderColor: C.border }]}>
-          <Text style={[s.chartTitle, { color: C.text }]}>Activité (7 jours)</Text>
-          <VictoryChart
-            theme={VictoryTheme.grayscale}
-            domainPadding={20}
-            width={width - 64}
-            height={200}
-            padding={{ top: 20, bottom: 40, left: 40, right: 20 }}
-          >
-            <VictoryAxis
-              tickValues={barData.map(d => d.day)}
-              style={{
-                axis: { stroke: C.border },
-                tickLabels: { fill: C.textMuted, fontSize: 10 }
-              }}
-            />
-            <VictoryAxis
-              dependentAxis
-              style={{
-                axis: { stroke: C.border },
-                tickLabels: { fill: C.textMuted, fontSize: 10 }
-              }}
-            />
-            <VictoryBar
-              data={barData}
-              x="day"
-              y="count"
-              style={{
-                data: { fill: '#7C3AED', width: 12 },
-              }}
-            />
-          </VictoryChart>
-        </View>
-
-        {/* Pie Chart */}
-        <View style={[s.chartCard, { backgroundColor: C.card, borderColor: C.border }]}>
-          <Text style={[s.chartTitle, { color: C.text }]}>Par catégorie</Text>
-          <View style={{ alignItems: 'center' }}>
-            <VictoryPie
-              data={pieData}
-              width={width - 64}
-              height={240}
-              colorScale={pieData.map(d => d.fill)}
-              innerRadius={50}
-              labels={({ datum }) => `${datum.x}: ${datum.y}`}
-              style={{
-                labels: { fill: C.text, fontSize: 10, fontWeight: '600' }
-              }}
-            />
-          </View>
-        </View>
-
-      </ScrollView>
-    </SafeAreaView>
+      ))}
+    </View>
   );
 }
 
-const s = StyleSheet.create({
-  kpiRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  kpiCard: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  kpiVal: { fontSize: 20, fontWeight: '700', marginBottom: 4 },
-  kpiLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-  chartCard: {
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginBottom: 20,
-  },
-  chartTitle: { fontSize: 15, fontWeight: '700', marginBottom: 10 },
-});
+function CatBar({ name, color, count, total }: { name: string; color: string; count: number; total: number }) {
+  return (
+    <View style={{ paddingVertical: 10 }}>
+      <View style={{
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8,
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ width: 9, height: 9, borderRadius: 4.5, backgroundColor: color }} />
+          <Text style={{ fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.textPrimary }}>{name}</Text>
+        </View>
+        <Text style={{ fontSize: 12, color: COLORS.textMuted }}>{count} / {total}</Text>
+      </View>
+      <View style={{ height: 6, borderRadius: 3, backgroundColor: COLORS.surface2, overflow: 'hidden' }}>
+        <View style={{
+          width: total > 0 ? `${(count / total) * 100}%` : '0%',
+          height: '100%', backgroundColor: color,
+        }} />
+      </View>
+    </View>
+  );
+}
+
+export default function StatsScreen({ navigation, todos, isDark, C }: Props) {
+  const total = todos.length;
+  const completed = todos.filter((t) => t.completed).length;
+  const completion = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const overdueCount = todos.filter((t) => !t.completed && t.dueDate && new Date(t.dueDate) < new Date()).length;
+
+  const r = 52;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - completion / 100);
+
+  const exportPDF = async () => {
+    const html = `<html><body><h1>Rapport Todo</h1></body></html>`;
+    try {
+      const { uri } = await Print.printToFileAsync({ html });
+      await Sharing.shareAsync(uri);
+    } catch (e) { console.error(e); }
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+        <View style={{
+          paddingHorizontal: 24, paddingTop: 8,
+          flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
+        }}>
+          <View>
+            <Text style={{ fontFamily: FONTS.display, fontSize: 32, color: COLORS.titleStats, letterSpacing: -0.5 }}>
+              Progression
+            </Text>
+            <Text style={{
+              fontFamily: FONTS.bodyMedium, fontSize: 13, marginTop: 8,
+              letterSpacing: 0.4, textTransform: 'uppercase', color: COLORS.textSecondary,
+            }}>Cette semaine</Text>
+          </View>
+          <Pressable onPress={exportPDF} style={{
+            flexDirection: 'row', alignItems: 'center', gap: 5,
+            paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14,
+            backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
+          }}>
+            <Icon name="paperclip" size={12} color={COLORS.textSecondary} />
+            <Text style={{ fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary }}>PDF</Text>
+          </Pressable>
+        </View>
+
+        <View style={{ paddingHorizontal: 16, paddingTop: 24 }}>
+          <View style={[{
+            backgroundColor: COLORS.surface, borderRadius: 24, padding: 24,
+            borderWidth: 1, borderColor: COLORS.border,
+            flexDirection: 'row', alignItems: 'center', gap: 22,
+          }, SHADOWS.sm]}>
+            <View style={{ width: 124, height: 124 }}>
+              <Svg width={124} height={124} viewBox="0 0 124 124" style={{ transform: [{ rotate: '-90deg' }] }}>
+                <Circle cx="62" cy="62" r={r} stroke={COLORS.surface2} strokeWidth={10} fill="none" />
+                <Circle cx="62" cy="62" r={r} stroke={COLORS.accent} strokeWidth={10} fill="none"
+                  strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" />
+              </Svg>
+              <View style={{
+                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Text style={{ fontFamily: FONTS.display, fontSize: 38, color: COLORS.textPrimary }}>
+                  {completion}<Text style={{ fontSize: 18, color: COLORS.textMuted }}>%</Text>
+                </Text>
+                <Text style={{ fontSize: 10, letterSpacing: 1, color: COLORS.textMuted, textTransform: 'uppercase' }}>
+                  Terminé
+                </Text>
+              </View>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{
+                fontFamily: FONTS.display, fontSize: 22, lineHeight: 26,
+                color: COLORS.textPrimary, letterSpacing: -0.3,
+              }}>
+                {completion >= 80 ? 'Super rythme cette semaine !' : completion >= 50 ? 'Continue comme ça !' : 'Cette semaine peut mieux faire'}
+              </Text>
+              <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Icon name="trend" size={13} color={COLORS.accent} />
+                <Text style={{ fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.accent }}>
+                  {overdueCount === 0 ? 'Aucun retard' : `${overdueCount} tâche(s) en retard`}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
+          <View style={[{
+            backgroundColor: COLORS.surface, borderRadius: 24, padding: 22,
+            borderWidth: 1, borderColor: COLORS.border,
+          }, SHADOWS.sm]}>
+            <View style={{
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18,
+            }}>
+              <Text style={{
+                fontFamily: FONTS.bodyMedium, fontSize: 11,
+                letterSpacing: 1.4, textTransform: 'uppercase', color: COLORS.textMuted,
+              }}>Tâches terminées</Text>
+              <Text style={{ fontSize: 12, color: COLORS.textMuted }}>{completed} cette semaine</Text>
+            </View>
+            <WeekBars />
+          </View>
+        </View>
+
+        <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 12 }}>
+          <View style={[{
+            flex: 1, padding: 18, backgroundColor: COLORS.yellow, borderRadius: 20,
+          }, SHADOWS.tinted(COLORS.yellow)]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Icon name="flame" size={16} color={COLORS.textPrimary} strokeWidth={1.9} />
+              <Text style={{
+                fontFamily: FONTS.bodyBold, fontSize: 10,
+                letterSpacing: 1, textTransform: 'uppercase', color: COLORS.textPrimary,
+              }}>Taux</Text>
+            </View>
+            <Text style={{ marginTop: 10, fontFamily: FONTS.display, fontSize: 38, color: COLORS.textPrimary }}>
+              {completion}<Text style={{ fontSize: 16, fontFamily: FONTS.body, opacity: 0.6 }}>%</Text>
+            </Text>
+            <Text style={{ marginTop: 4, fontSize: 12, color: COLORS.textPrimary, opacity: 0.7 }}>
+              de complétion
+            </Text>
+          </View>
+
+          <View style={[{
+            flex: 1, padding: 18, backgroundColor: COLORS.teal, borderRadius: 20,
+          }, SHADOWS.tinted(COLORS.teal)]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Icon name="clock" size={16} color="#fff" strokeWidth={1.9} />
+              <Text style={{
+                fontFamily: FONTS.bodyBold, fontSize: 10,
+                letterSpacing: 1, textTransform: 'uppercase', color: '#fff',
+              }}>Retard</Text>
+            </View>
+            <Text style={{ marginTop: 10, fontFamily: FONTS.display, fontSize: 38, color: '#fff' }}>
+              {overdueCount}
+            </Text>
+            <Text style={{ marginTop: 4, fontSize: 12, color: '#fff', opacity: 0.85 }}>
+              tâches en retard
+            </Text>
+          </View>
+        </View>
+
+        <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
+          <View style={[{
+            backgroundColor: COLORS.surface, borderRadius: 24, padding: 22,
+            borderWidth: 1, borderColor: COLORS.border,
+          }, SHADOWS.sm]}>
+            <Text style={{
+              fontFamily: FONTS.bodyMedium, fontSize: 11,
+              letterSpacing: 1.4, textTransform: 'uppercase',
+              color: COLORS.textMuted, marginBottom: 8,
+            }}>Par catégorie</Text>
+            {CATEGORIES.map((cat) => {
+              const count = todos.filter((t) => t.categoryId === cat.id).length;
+              const done = todos.filter((t) => t.categoryId === cat.id && t.completed).length;
+              return <CatBar key={cat.id} name={cat.name} color={cat.color} count={done} total={count} />;
+            })}
+          </View>
+        </View>
+      </ScrollView>
+
+      <TabBar active="stats" onTab={(tab) => {
+        if (!navigation) return;
+        if (tab === 'home') navigation.navigate('Home');
+        if (tab === 'cats') navigation.navigate('Categories');
+      }} />
+    </SafeAreaView>
+  );
+}

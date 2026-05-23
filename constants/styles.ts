@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { ColorScheme } from '../types';
+import { COLORS } from './colors';
 
 export const getStyles = (isDark: boolean, C: ColorScheme) =>
   StyleSheet.create({

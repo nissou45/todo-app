@@ -8,7 +8,9 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
-  }),
+    shouldShowBanner: true,
+    shouldShowList: true,
+  } as any),
 });
 
 export const useNotifications = () => {
@@ -62,7 +64,7 @@ export const useNotifications = () => {
         body: todo.text,
         data: { todoId: todo.id },
       },
-      trigger,
+      trigger: trigger as any,
     });
   };
 
