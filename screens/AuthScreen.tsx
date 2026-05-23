@@ -34,6 +34,13 @@ export default function AuthScreen({ navigation, isDark, C }: Props) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs');
       return;
     }
+    if (!supabase) {
+      Alert.alert(
+        'Supabase non configuré',
+        'Ajoutez vos clés Supabase dans app.json → extra pour activer l\'authentification.'
+      );
+      return;
+    }
     setLoading(true);
     if (isSignUp) {
       const { error } = await supabase.auth.signUp({ email, password });

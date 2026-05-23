@@ -5,10 +5,28 @@ import Constants from 'expo-constants';
 const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || '';
 const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    'Supabase credentials are missing. Please set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in your app config.'
-  );
+function isValidHttpUrl(s: string): boolean {
+  try {
+    const u = new URL(s);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+if (!supabaseUrl || !isValidHttpUrl(supabaseUrl) || !supabaseAnonKey) {
+  if (__DEV__) {
+    console.warn(
+      '[supabase] Credentials manquantes ou invalides. ' +
+      'L\'app fonctionnera en mode local (AsyncStorage). ' +
+      'Configure EXPO_PUBLIC_SUPABASE_URL et EXPO_PUBLIC_SUPABASE_ANON_KEY ' +
+      'dans app.json → extra pour activer la synchro cloud.'
+    );
+  }
+}
+
+const _supabase = (isValidHttpUrl(supabaseUrl) && supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
+
+export const supabase = _supabase;

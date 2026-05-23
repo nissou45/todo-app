@@ -3,6 +3,11 @@ import { Todo } from '../types';
 
 export const useSync = () => {
   const syncTodos = async (localTodos: Todo[], userId: string): Promise<Todo[]> => {
+    if (!supabase) {
+      if (__DEV__) console.log('[sync] Supabase non configuré, mode local uniquement');
+      return localTodos;
+    }
+
     try {
       // 1. Récupérer les données du cloud
       const { data: cloudTodos, error } = await supabase
