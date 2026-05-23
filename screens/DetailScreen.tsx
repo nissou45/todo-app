@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -24,7 +24,7 @@ import PomodoroTimer from '../components/PomodoroTimer';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Detail'> & {
   todos: Todo[];
-  setTodos: (todos: Todo[]) => void;
+  setTodos: (todos: Todo[] | ((prev: Todo[]) => Todo[])) => void;
   isDark: boolean;
   C: ColorScheme;
 };
@@ -75,11 +75,12 @@ export default function DetailScreen({ route, navigation, todos, setTodos, isDar
 
   const cat = getCategory(categoryId);
 
-  const handlePomodoroComplete = () => {
+  const handlePomodoroComplete = useCallback(() => {
     setPomodoroCount((prev) => prev + 1);
-  };
+  }, []);
 
-  const save = async () => {
+  const save = useCallback(async () => {
+    if (!todo) return;
     const updatedTodo: Todo = {
       ...todo,
       text,
@@ -90,8 +91,7 @@ export default function DetailScreen({ route, navigation, todos, setTodos, isDar
       updatedAt: new Date().toISOString(),
     };
 
-    const next = todos.map((t) => (t.id === todo.id ? updatedTodo : t));
-    setTodos(next);
+    setTodos(todos.map((t) => (t.id === todo.id ? updatedTodo : t)));
 
     if (updatedTodo.completed) {
       await cancelTodoNotification(todo.id);
@@ -100,7 +100,7 @@ export default function DetailScreen({ route, navigation, todos, setTodos, isDar
     }
 
     navigation.goBack();
-  };
+  }, [todo, todos, text, categoryId, dueDate, reminderEnabled, pomodoroCount, setTodos, cancelTodoNotification, scheduleTodoNotification, navigation]);
 
   const deleteTodo = () =>
     Alert.alert('Supprimer', 'Confirmer ?', [

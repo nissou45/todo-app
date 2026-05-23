@@ -21,7 +21,7 @@ interface TodoRowProps {
   styles: ReturnType<typeof StyleSheet.create>;
 }
 
-export default function TodoRow({ item, onToggle, onDelete, onPress, drag, isActive, searchQuery, C, styles }: TodoRowProps): JSX.Element {
+const TodoRow = React.memo(function TodoRow({ item, onToggle, onDelete, onPress, drag, isActive, searchQuery, C, styles }: TodoRowProps): JSX.Element {
   const swipeRef = useRef<Swipeable>(null);
   const cat = CATEGORIES.find((c) => c.id === item.categoryId) || CATEGORIES[0];
   const overdue = !item.completed && isOverdue(item.dueDate);
@@ -122,4 +122,6 @@ export default function TodoRow({ item, onToggle, onDelete, onPress, drag, isAct
       </Pressable>
     </Swipeable>
   );
-}
+});
+
+export default TodoRow;

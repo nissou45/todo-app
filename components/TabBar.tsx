@@ -19,7 +19,7 @@ interface TabBarProps {
   C: ColorScheme;
 }
 
-export default function TabBar({ active = 'home', onTab, C }: TabBarProps): JSX.Element {
+const TabBar = React.memo(function TabBar({ active = 'home', onTab, C }: TabBarProps): JSX.Element {
   return (
     <View style={[{
       position: 'absolute', bottom: 28, left: 16, right: 16,
@@ -61,4 +61,6 @@ export default function TabBar({ active = 'home', onTab, C }: TabBarProps): JSX.
       })}
     </View>
   );
-}
+});
+
+export default TabBar;

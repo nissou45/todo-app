@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   useColorScheme,
   View,
@@ -33,6 +33,8 @@ export default function App(): JSX.Element {
   const isDark = useColorScheme() === "dark";
   const C = isDark ? DARK : LIGHT;
   const [todos, setTodos] = useState<Todo[]>([]);
+  const todosRef = useRef(todos);
+  todosRef.current = todos;
   const [isReady, setIsReady] = useState(false);
 
   const { registerForPushNotificationsAsync } = useNotifications();
@@ -68,14 +70,22 @@ export default function App(): JSX.Element {
     })();
   }, [user]);
 
-  const saveTodos = async (newTodos: Todo[]): Promise<void> => {
-    setTodos(newTodos);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newTodos));
-
-    if (user) {
-      await syncTodos(newTodos, user.id);
+  const saveTodos = useCallback(async (newTodos: Todo[] | ((prev: Todo[]) => Todo[])): Promise<void> => {
+    if (typeof newTodos === 'function') {
+      setTodos(newTodos);
+      const resolved = newTodos(todos);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(resolved));
+      if (user) {
+        await syncTodos(resolved, user.id);
+      }
+    } else {
+      setTodos(newTodos);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newTodos));
+      if (user) {
+        await syncTodos(newTodos, user.id);
+      }
     }
-  };
+  }, [todos, user, syncTodos]);
 
   if (!fontsLoaded || authLoading || !isReady) {
     return (

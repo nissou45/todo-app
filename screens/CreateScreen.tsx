@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, Pressable, ScrollView, TextInput, Animated, Platform } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -11,7 +11,7 @@ import { useNotifications } from '../hooks/useNotifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Create'> & {
   todos: Todo[];
-  setTodos: (todos: Todo[]) => void;
+  setTodos: (todos: Todo[] | ((prev: Todo[]) => Todo[])) => void;
   isDark: boolean;
   C: ColorScheme;
 };
@@ -44,13 +44,13 @@ export default function CreateScreen({ navigation, todos, setTodos, isDark }: Pr
     }).start();
   }, []);
 
-  const onClose = () => {
+  const onClose = useCallback(() => {
     Animated.timing(translateY, {
       toValue: 800, duration: 200, useNativeDriver: true,
     }).start(() => navigation && navigation.goBack());
-  };
+  }, [navigation, translateY]);
 
-  const handleAdd = async () => {
+  const handleAdd = useCallback(async () => {
     if (!title.trim()) return;
     const now = new Date().toISOString();
     const newTodo: Todo = {
@@ -64,13 +64,12 @@ export default function CreateScreen({ navigation, todos, setTodos, isDark }: Pr
       pomodoroCount: 0,
       priority,
     };
-    const next = [...todos, newTodo];
-    setTodos(next);
+    setTodos([...todos, newTodo]);
     if (newTodo.reminderEnabled) {
       await scheduleTodoNotification(newTodo);
     }
     onClose();
-  };
+  }, [title, cat, dueDate, priority, todos, setTodos, scheduleTodoNotification, onClose]);
 
   const todayStr = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 

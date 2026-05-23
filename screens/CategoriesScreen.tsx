@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -98,8 +98,11 @@ function CategoryCard({ cat, count, done, onPress, C }: {
 export default function CategoriesScreen({ navigation, todos, isDark, C }: Props): JSX.Element {
   const total = todos.length;
   const totalDone = todos.filter((t) => t.completed).length;
-  const pairs: (typeof CATEGORIES[number])[][] = [];
-  for (let i = 0; i < CATEGORIES.length; i += 2) pairs.push([CATEGORIES[i], CATEGORIES[i + 1]]);
+  const pairs = useMemo(() => {
+    const result: (typeof CATEGORIES[number])[][] = [];
+    for (let i = 0; i < CATEGORIES.length; i += 2) result.push([CATEGORIES[i], CATEGORIES[i + 1]]);
+    return result;
+  }, []);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.background }}>

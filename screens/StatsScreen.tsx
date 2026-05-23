@@ -56,7 +56,7 @@ function computeWeekData(todos: Todo[]): { ratio: number; count: number; total: 
   }));
 }
 
-function WeekBars({ todos, C }: { todos: Todo[]; C: ColorScheme }): JSX.Element {
+const WeekBars = React.memo(function WeekBars({ todos, C }: { todos: Todo[]; C: ColorScheme }): JSX.Element {
   const weekData = computeWeekData(todos);
   const now = new Date();
   const todayIdx = getWeekId(now);
@@ -91,9 +91,9 @@ function WeekBars({ todos, C }: { todos: Todo[]; C: ColorScheme }): JSX.Element 
       })}
     </View>
   );
-}
+});
 
-function CatBar({ name, color, count, total, C }: { name: string; color: string; count: number; total: number; C: ColorScheme }): JSX.Element {
+const CatBar = React.memo(function CatBar({ name, color, count, total, C }: { name: string; color: string; count: number; total: number; C: ColorScheme }): JSX.Element {
   return (
     <View style={{ paddingVertical: 10 }}>
       <View style={{
@@ -113,7 +113,7 @@ function CatBar({ name, color, count, total, C }: { name: string; color: string;
       </View>
     </View>
   );
-}
+});
 
 export default function StatsScreen({ navigation, todos, isDark, C }: Props): JSX.Element {
   const total = todos.length;

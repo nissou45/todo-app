@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -18,7 +18,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Calendar'> & {
 
 const WEEK_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'] as const;
 
-function DayCell({ day, isToday, catIds, C }: { day: number; isToday: boolean; catIds: string[]; C: ColorScheme }): JSX.Element {
+const DayCell = React.memo(function DayCell({ day, isToday, catIds, C }: { day: number; isToday: boolean; catIds: string[]; C: ColorScheme }): JSX.Element {
   return (
     <View style={[{
       aspectRatio: 0.9, borderRadius: 12,
@@ -48,7 +48,7 @@ function DayCell({ day, isToday, catIds, C }: { day: number; isToday: boolean; c
       )}
     </View>
   );
-}
+});
 
 function getMonthBoundaries(date: Date): { year: number; month: number; daysInMonth: number; startWeekday: number; prevMonthDays: number } {
   const year = date.getFullYear();
@@ -67,28 +67,35 @@ export default function CalendarScreen({ navigation, todos, C }: Props): JSX.Ele
   const { year, month, daysInMonth, startWeekday, prevMonthDays } = getMonthBoundaries(now);
 
   // Build density map from real todos
-  const density: Record<number, string[]> = {};
-  const todayTodos: Todo[] = [];
-  todos.forEach((t) => {
-    if (!t.dueDate) return;
-    const d = new Date(t.dueDate);
-    if (d.getFullYear() === year && d.getMonth() === month) {
-      const day = d.getDate();
-      if (!density[day]) density[day] = [];
-      density[day].push(t.categoryId);
-    }
-    if (d.toDateString() === now.toDateString()) {
-      todayTodos.push(t);
-    }
-  });
+  const density = useMemo(() => {
+    const map: Record<number, string[]> = {};
+    todos.forEach((t) => {
+      if (!t.dueDate) return;
+      const d = new Date(t.dueDate);
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        const day = d.getDate();
+        if (!map[day]) map[day] = [];
+        map[day].push(t.categoryId);
+      }
+    });
+    return map;
+  }, [todos, year, month]);
 
-  const cells: { day: number; prev?: boolean; isToday?: boolean; catIds: string[] }[] = [];
-  for (let d = startWeekday - 1; d >= 0; d--) {
-    cells.push({ day: prevMonthDays - d, prev: true, catIds: [] });
-  }
-  for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({ day: d, isToday: d === today, catIds: density[d] || [] });
-  }
+  const todayTodos = useMemo(() =>
+    todos.filter((t) => t.dueDate && new Date(t.dueDate).toDateString() === now.toDateString()),
+    [todos, now],
+  );
+
+  const cells = useMemo(() => {
+    const result: { day: number; prev?: boolean; isToday?: boolean; catIds: string[] }[] = [];
+    for (let d = startWeekday - 1; d >= 0; d--) {
+      result.push({ day: prevMonthDays - d, prev: true, catIds: [] });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      result.push({ day: d, isToday: d === today, catIds: density[d] || [] });
+    }
+    return result;
+  }, [startWeekday, prevMonthDays, daysInMonth, today, density]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.background }}>

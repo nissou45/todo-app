@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -29,7 +29,7 @@ export default function AuthScreen({ navigation, isDark, C }: Props): JSX.Elemen
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
-  async function handleAuth() {
+  const handleAuth = useCallback(async () => {
     if (!email || !password) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs');
       return;
@@ -51,7 +51,7 @@ export default function AuthScreen({ navigation, isDark, C }: Props): JSX.Elemen
       if (error) Alert.alert('Erreur', error.message);
     }
     setLoading(false);
-  }
+  }, [email, password, isSignUp]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.background }}>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { FONTS } from '../constants/typography';
 import { SHADOWS } from '../constants/shadows';
 import { formatDate } from '../utils/dateHelpers';
 import { getStyles } from '../constants/styles';
+import { supabase } from '../lib/supabase';
 import { Todo, ColorScheme, RootStackParamList } from '../types';
 import { useNotifications } from '../hooks/useNotifications';
 import { User } from '@supabase/supabase-js';
@@ -112,7 +113,7 @@ export default function HomeScreen({ navigation, todos, setTodos, isDark, C, use
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState(new Date());
 
-  const addTodo = async () => {
+  const addTodo = useCallback(async () => {
     if (!inputText.trim()) return;
     const now = new Date().toISOString();
     const newTodo: Todo = {
@@ -133,9 +134,9 @@ export default function HomeScreen({ navigation, todos, setTodos, isDark, C, use
     if (newTodo.reminderEnabled) {
       await scheduleTodoNotification(newTodo);
     }
-  };
+  }, [inputText, selectedCat, dueDate, todos, setTodos, scheduleTodoNotification]);
 
-  const toggleTodo = async (id: string) => {
+  const toggleTodo = useCallback(async (id: string) => {
     const now = new Date().toISOString();
     const next = todos.map((t) => {
       if (t.id === id) {
@@ -150,20 +151,28 @@ export default function HomeScreen({ navigation, todos, setTodos, isDark, C, use
       return t;
     });
     setTodos(next);
-  };
+  }, [todos, setTodos, cancelTodoNotification, scheduleTodoNotification]);
 
-  const handleProfilePress = () => {
+  const handleProfilePress = useCallback(() => {
     if (user) {
       Alert.alert('Profil', `Connecté en tant que ${user.email}`, [
         { text: 'Annuler', style: 'cancel' },
         { text: 'Se déconnecter', style: 'destructive', onPress: onSignOut },
       ]);
-    } else {
+    } else if (supabase) {
       navigation.navigate('Auth');
+    } else {
+      Alert.alert(
+        'Mode hors ligne 🌴',
+        'Tu utilises l\'app en local sans compte. ' +
+        'Configure Supabase dans app.json → extra pour activer ' +
+        'l\'authentification et la synchronisation cloud.',
+        [{ text: 'Super !', style: 'default' }]
+      );
     }
-  };
+  }, [user, navigation, onSignOut]);
 
-  const deleteTodo = (id: string) =>
+  const deleteTodo = useCallback((id: string) =>
     Alert.alert('Supprimer', 'Confirmer ?', [
       { text: 'Annuler', style: 'cancel' },
       {
@@ -175,7 +184,7 @@ export default function HomeScreen({ navigation, todos, setTodos, isDark, C, use
           cancelTodoNotification(id);
         },
       },
-    ]);
+    ]), [todos, setTodos, cancelTodoNotification]);
 
   const filtered = useMemo(() =>
     todos.filter((t) => {
