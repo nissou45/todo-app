@@ -45,11 +45,11 @@ export const CATEGORIES = [
 export const getCategory = (id: string) => CATEGORIES.find((c) => c.id === id) || CATEGORIES[0];
 
 export const DARK: ColorScheme = {
-  bg: '#0E0E1A',
-  card: '#18182A',
+  bg: '#1A1A2E',
+  card: '#252540',
   text: '#EDE8E0',
-  textMuted: '#6B6B8A',
-  border: '#2A2A42',
+  textMuted: '#8888AA',
+  border: '#333355',
 };
 
 export const LIGHT: ColorScheme = {
