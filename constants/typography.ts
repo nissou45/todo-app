@@ -12,7 +12,7 @@ export const FONTS = {
   bodyMedium: 'DMSans_500Medium',
   bodySemi: 'DMSans_700Bold',
   bodyBold: 'DMSans_700Bold',
-};
+} as const;
 
 export function useAppFonts() {
   return useFonts({

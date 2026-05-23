@@ -16,9 +16,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Calendar'> & {
   C: ColorScheme;
 };
 
-const WEEK_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+const WEEK_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'] as const;
 
-function DayCell({ day, isToday, catIds, C }: { day: number; isToday: boolean; catIds: string[]; C: ColorScheme }) {
+function DayCell({ day, isToday, catIds, C }: { day: number; isToday: boolean; catIds: string[]; C: ColorScheme }): JSX.Element {
   return (
     <View style={[{
       aspectRatio: 0.9, borderRadius: 12,
@@ -50,7 +50,7 @@ function DayCell({ day, isToday, catIds, C }: { day: number; isToday: boolean; c
   );
 }
 
-function getMonthBoundaries(date: Date) {
+function getMonthBoundaries(date: Date): { year: number; month: number; daysInMonth: number; startWeekday: number; prevMonthDays: number } {
   const year = date.getFullYear();
   const month = date.getMonth();
   const firstDay = new Date(year, month, 1);
@@ -61,7 +61,7 @@ function getMonthBoundaries(date: Date) {
   return { year, month, daysInMonth, startWeekday, prevMonthDays };
 }
 
-export default function CalendarScreen({ navigation, todos, C }: Props) {
+export default function CalendarScreen({ navigation, todos, C }: Props): JSX.Element {
   const now = new Date();
   const today = now.getDate();
   const { year, month, daysInMonth, startWeekday, prevMonthDays } = getMonthBoundaries(now);

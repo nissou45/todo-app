@@ -23,7 +23,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Auth'> & {
   C: ColorScheme;
 };
 
-export default function AuthScreen({ navigation, isDark, C }: Props) {
+export default function AuthScreen({ navigation, isDark, C }: Props): JSX.Element {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);

@@ -12,7 +12,7 @@ interface FABProps {
   C: ColorScheme;
 }
 
-export default function FAB({ onPress, bottom = 110, color, C }: FABProps) {
+export default function FAB({ onPress, bottom = 110, color, C }: FABProps): JSX.Element {
   const fabColor = color || C.accent;
   return (
     <Pressable

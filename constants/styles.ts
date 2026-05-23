@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { ColorScheme } from '../types';
 
-export const getStyles = (isDark: boolean, C: ColorScheme) =>
+export const getStyles = (isDark: boolean, C: ColorScheme): ReturnType<typeof StyleSheet.create> =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg, overflow: 'hidden' },
     subtitle: { fontSize: 13, color: C.textMuted },

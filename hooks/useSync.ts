@@ -1,7 +1,22 @@
 import { supabase } from '../lib/supabase';
 import { Todo } from '../types';
 
-export const useSync = () => {
+interface CloudTodo {
+  id: string;
+  text: string;
+  completed: boolean;
+  categoryId: string;
+  dueDate: string | null;
+  reminderEnabled: boolean;
+  updated_at: string;
+  user_id: string;
+}
+
+interface UseSyncReturn {
+  syncTodos: (localTodos: Todo[], userId: string) => Promise<Todo[]>;
+}
+
+export const useSync = (): UseSyncReturn => {
   const syncTodos = async (localTodos: Todo[], userId: string): Promise<Todo[]> => {
     if (!supabase) {
       if (__DEV__) console.log('[sync] Supabase non configuré, mode local uniquement');
@@ -17,12 +32,13 @@ export const useSync = () => {
 
       if (error) throw error;
 
-      const cloudMap = new Map((cloudTodos || []).map((t: any) => [t.id, t]));
+      const cloudMap = new Map((cloudTodos || []).map((t: CloudTodo) => [t.id, t]));
       const localMap = new Map(localTodos.map((t) => [t.id, t]));
 
+      type UploadRecord = Record<string, unknown>;
       const allIds = new Set([...cloudMap.keys(), ...localMap.keys()]);
       const merged: Todo[] = [];
-      const toUpload: any[] = [];
+      const toUpload: UploadRecord[] = [];
 
       allIds.forEach((id) => {
         const local = localMap.get(id);
@@ -35,9 +51,14 @@ export const useSync = () => {
             toUpload.push({ ...local, user_id: userId, updated_at: local.updatedAt });
           } else {
             merged.push({
-              ...cloud,
-              updatedAt: cloud.updated_at,
+              id: cloud.id,
+              text: cloud.text,
+              completed: cloud.completed,
+              categoryId: cloud.categoryId,
+              dueDate: cloud.dueDate,
               reminderEnabled: cloud.reminderEnabled ?? false,
+              updatedAt: cloud.updated_at,
+              pomodoroCount: 0,
             });
           }
         } else if (local) {
@@ -47,9 +68,14 @@ export const useSync = () => {
         } else if (cloud) {
           // Uniquement sur le cloud
           merged.push({
-            ...cloud,
-            updatedAt: cloud.updated_at,
+            id: cloud.id,
+            text: cloud.text,
+            completed: cloud.completed,
+            categoryId: cloud.categoryId,
+            dueDate: cloud.dueDate,
             reminderEnabled: cloud.reminderEnabled ?? false,
+            updatedAt: cloud.updated_at,
+            pomodoroCount: 0,
           });
         }
       });

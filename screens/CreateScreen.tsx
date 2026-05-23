@@ -16,10 +16,10 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Create'> & {
   C: ColorScheme;
 };
 
-export default function CreateScreen({ navigation, todos, setTodos, isDark }: Props) {
+export default function CreateScreen({ navigation, todos, setTodos, isDark }: Props): JSX.Element {
   const { scheduleTodoNotification } = useNotifications();
   const [title, setTitle] = useState('');
-  const [cat, setCat] = useState(CATEGORIES[0].id);
+  const [cat, setCat] = useState<string>(CATEGORIES[0].id);
   const [priority, setPriority] = useState(false);
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);

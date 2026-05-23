@@ -2,7 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import * as Haptics from 'expo-haptics';
 
-export const usePomodoro = (onComplete: () => void) => {
+interface UsePomodoroReturn {
+  timeLeft: number;
+  isActive: boolean;
+  mode: 'work' | 'break';
+  toggleTimer: () => void;
+  resetTimer: () => void;
+  formatTime: (seconds: number) => string;
+}
+
+export const usePomodoro = (onComplete: () => void): UsePomodoroReturn => {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
   const [mode, setMode] = useState<'work' | 'break'>('work');
@@ -60,7 +69,7 @@ export const usePomodoro = (onComplete: () => void) => {
     setTimeLeft(25 * 60);
   };
 
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;

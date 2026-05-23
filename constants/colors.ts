@@ -40,9 +40,10 @@ export const CATEGORIES = [
   { id: 'travail', name: 'Travail', color: COLORS.categories.travail, icon: 'briefcase', isLight: false },
   { id: 'loisirs', name: 'Loisirs', color: COLORS.categories.loisirs, icon: 'leaf', isLight: false },
   { id: 'urgent', name: 'Urgent', color: COLORS.categories.urgent, icon: 'flag', isLight: true },
-];
+] as const;
 
-export const getCategory = (id: string) => CATEGORIES.find((c) => c.id === id) || CATEGORIES[0];
+export const getCategory = (id: string): typeof CATEGORIES[number] =>
+  CATEGORIES.find((c) => c.id === id) || CATEGORIES[0];
 
 export const DARK: ColorScheme = {
   bg: '#1A1A2E',

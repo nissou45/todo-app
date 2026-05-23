@@ -2,7 +2,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 
-export const useAuth = () => {
+interface UseAuthReturn {
+  user: User | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
+}
+
+export const useAuth = (): UseAuthReturn => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);

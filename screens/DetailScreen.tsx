@@ -29,7 +29,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Detail'> & {
   C: ColorScheme;
 };
 
-function MetaPill({ icon, label, value, color }: { icon: string; label: string; value: string; color?: string }) {
+function MetaPill({ icon, label, value, color }: { icon: string; label: string; value: string; color?: string }): JSX.Element {
   return (
     <View style={[{
       flex: 1, padding: 14,
@@ -51,7 +51,7 @@ function MetaPill({ icon, label, value, color }: { icon: string; label: string; 
   );
 }
 
-export default function DetailScreen({ route, navigation, todos, setTodos, isDark, C }: Props) {
+export default function DetailScreen({ route, navigation, todos, setTodos, isDark, C }: Props): JSX.Element | null {
   const { todoId } = route.params;
   const todo = todos.find((t) => t.id === todoId);
   const styles = getStyles(isDark, C);
@@ -62,7 +62,7 @@ export default function DetailScreen({ route, navigation, todos, setTodos, isDar
   }, [todo, navigation]);
 
   const [text, setText] = useState(todo?.text ?? '');
-  const [categoryId, setCategoryId] = useState(todo?.categoryId || CATEGORIES[0].id);
+  const [categoryId, setCategoryId] = useState<string>(todo?.categoryId || CATEGORIES[0].id);
   const [dueDate, setDueDate] = useState<Date | null>(
     todo?.dueDate ? new Date(todo.dueDate) : null,
   );

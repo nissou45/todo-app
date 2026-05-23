@@ -45,12 +45,12 @@ function getPeriod(t: Todo): Period {
   return 'soir';
 }
 
-const PERIOD_META: Record<Period, { label: string; emoji: string }> = {
+const PERIOD_META = {
   matin: { label: 'Matin', emoji: '☀️' },
   aprem: { label: 'Après-midi', emoji: '🌤️' },
   soir: { label: 'Soir', emoji: '🌙' },
   none: { label: 'Sans date', emoji: '📌' },
-};
+} as const;
 
 function TimeSection({ period, tasks, onToggle, onDelete, onPress, C, styles }: {
   period: Period;
@@ -60,7 +60,7 @@ function TimeSection({ period, tasks, onToggle, onDelete, onPress, C, styles }: 
   onPress: (todo: Todo) => void;
   C: ColorScheme;
   styles: ReturnType<typeof getStyles>;
-}) {
+}): JSX.Element | null {
   if (!tasks.length) return null;
   const meta = PERIOD_META[period];
   const doneCount = tasks.filter(t => t.completed).length;
@@ -100,13 +100,13 @@ function TimeSection({ period, tasks, onToggle, onDelete, onPress, C, styles }: 
   );
 }
 
-export default function HomeScreen({ navigation, todos, setTodos, isDark, C, user, onSignOut }: Props) {
+export default function HomeScreen({ navigation, todos, setTodos, isDark, C, user, onSignOut }: Props): JSX.Element {
   const styles = getStyles(isDark, C);
   const { scheduleTodoNotification, cancelTodoNotification } = useNotifications();
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
-  const [selectedCat, setSelectedCat] = useState(CATEGORIES[0].id);
+  const [selectedCat, setSelectedCat] = useState<string>(CATEGORIES[0].id);
   const [filterCat, setFilterCat] = useState('all');
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState(false);

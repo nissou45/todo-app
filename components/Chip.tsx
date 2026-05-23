@@ -14,7 +14,7 @@ interface ChipProps {
   C: ColorScheme;
 }
 
-export default function Chip({ label, count, active, color, onPress, C }: ChipProps) {
+export default function Chip({ label, count, active, color, onPress, C }: ChipProps): JSX.Element {
   const accent = color || C.accent;
   return (
     <Pressable onPress={onPress}>

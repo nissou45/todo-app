@@ -10,10 +10,16 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
     shouldShowBanner: true,
     shouldShowList: true,
-  } as any),
+  }),
 });
 
-export const useNotifications = () => {
+interface UseNotificationsReturn {
+  registerForPushNotificationsAsync: () => Promise<void>;
+  scheduleTodoNotification: (todo: Todo) => Promise<void>;
+  cancelTodoNotification: (todoId: string) => Promise<void>;
+}
+
+export const useNotifications = (): UseNotificationsReturn => {
   const registerForPushNotificationsAsync = async () => {
     if (!Device.isDevice) {
       console.log('Must use physical device for push notifications');
@@ -64,7 +70,7 @@ export const useNotifications = () => {
         body: todo.text,
         data: { todoId: todo.id },
       },
-      trigger: trigger as any,
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: trigger, channelId: 'default' },
     });
   };
 

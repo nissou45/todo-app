@@ -28,7 +28,7 @@ import { useSync } from "./hooks/useSync";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export default function App() {
+export default function App(): JSX.Element {
   const [fontsLoaded] = useAppFonts();
   const isDark = useColorScheme() === "dark";
   const C = isDark ? DARK : LIGHT;
@@ -48,7 +48,7 @@ export default function App() {
 
       if (saved) {
         const parsed = JSON.parse(saved);
-        localTodos = parsed.map((t: any) => ({
+        localTodos = parsed.map((t: Record<string, unknown>) => ({
           ...t,
           reminderEnabled: t.reminderEnabled ?? false,
           updatedAt: t.updatedAt ?? new Date().toISOString(),
@@ -68,7 +68,7 @@ export default function App() {
     })();
   }, [user]);
 
-  const saveTodos = async (newTodos: Todo[]) => {
+  const saveTodos = async (newTodos: Todo[]): Promise<void> => {
     setTodos(newTodos);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newTodos));
 

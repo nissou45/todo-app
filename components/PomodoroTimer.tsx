@@ -8,7 +8,7 @@ interface PomodoroTimerProps {
   onSessionComplete: () => void;
 }
 
-export default function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
+export default function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps): JSX.Element {
   const { timeLeft, isActive, mode, toggleTimer, resetTimer, formatTime } = usePomodoro(onSessionComplete);
 
   return (

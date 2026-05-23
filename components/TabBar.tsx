@@ -11,7 +11,7 @@ const TABS = [
   { id: 'cats',  icon: 'grid',  label: 'Listes' },
   { id: 'stats', icon: 'chart', label: 'Stats' },
   { id: 'me',    icon: 'user',  label: 'Profil' },
-];
+] as const;
 
 interface TabBarProps {
   active?: string;
@@ -19,7 +19,7 @@ interface TabBarProps {
   C: ColorScheme;
 }
 
-export default function TabBar({ active = 'home', onTab, C }: TabBarProps) {
+export default function TabBar({ active = 'home', onTab, C }: TabBarProps): JSX.Element {
   return (
     <View style={[{
       position: 'absolute', bottom: 28, left: 16, right: 16,

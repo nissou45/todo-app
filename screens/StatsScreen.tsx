@@ -18,8 +18,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Stats'> & {
   C: ColorScheme;
 };
 
-const WEEK_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-const BAR_COLORS = ['#FF6B6B', '#FFE66D', '#4ECDC4', '#45B7D1', '#FF6B6B', '#FFE66D', '#4ECDC4'];
+const WEEK_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'] as const;
+const BAR_COLORS = ['#FF6B6B', '#FFE66D', '#4ECDC4', '#45B7D1', '#FF6B6B', '#FFE66D', '#4ECDC4'] as const;
 
 function getWeekId(date: Date): number {
   const day = date.getDay();
@@ -56,7 +56,7 @@ function computeWeekData(todos: Todo[]): { ratio: number; count: number; total: 
   }));
 }
 
-function WeekBars({ todos, C }: { todos: Todo[]; C: ColorScheme }) {
+function WeekBars({ todos, C }: { todos: Todo[]; C: ColorScheme }): JSX.Element {
   const weekData = computeWeekData(todos);
   const now = new Date();
   const todayIdx = getWeekId(now);
@@ -93,7 +93,7 @@ function WeekBars({ todos, C }: { todos: Todo[]; C: ColorScheme }) {
   );
 }
 
-function CatBar({ name, color, count, total, C }: { name: string; color: string; count: number; total: number; C: ColorScheme }) {
+function CatBar({ name, color, count, total, C }: { name: string; color: string; count: number; total: number; C: ColorScheme }): JSX.Element {
   return (
     <View style={{ paddingVertical: 10 }}>
       <View style={{
@@ -115,7 +115,7 @@ function CatBar({ name, color, count, total, C }: { name: string; color: string;
   );
 }
 
-export default function StatsScreen({ navigation, todos, isDark, C }: Props) {
+export default function StatsScreen({ navigation, todos, isDark, C }: Props): JSX.Element {
   const total = todos.length;
   const completed = todos.filter((t) => t.completed).length;
   const completion = total > 0 ? Math.round((completed / total) * 100) : 0;

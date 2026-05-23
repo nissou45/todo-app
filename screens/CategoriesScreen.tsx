@@ -18,12 +18,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Categories'> & {
 };
 
 function CategoryCard({ cat, count, done, onPress, C }: {
-  cat: typeof CATEGORIES[0];
+  cat: typeof CATEGORIES[number];
   count: number;
   done: number;
   onPress?: () => void;
   C: ColorScheme;
-}) {
+}): JSX.Element {
   const pct = count > 0 ? Math.round((done / count) * 100) : 0;
   const textColor = cat.isLight ? C.textPrimary : '#FFFFFF';
   const r = 16;
@@ -95,10 +95,10 @@ function CategoryCard({ cat, count, done, onPress, C }: {
   );
 }
 
-export default function CategoriesScreen({ navigation, todos, isDark, C }: Props) {
+export default function CategoriesScreen({ navigation, todos, isDark, C }: Props): JSX.Element {
   const total = todos.length;
   const totalDone = todos.filter((t) => t.completed).length;
-  const pairs: (typeof CATEGORIES)[0][][] = [];
+  const pairs: (typeof CATEGORIES[number])[][] = [];
   for (let i = 0; i < CATEGORIES.length; i += 2) pairs.push([CATEGORIES[i], CATEGORIES[i + 1]]);
 
   return (

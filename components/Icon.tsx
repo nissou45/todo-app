@@ -8,7 +8,7 @@ interface IconProps {
   strokeWidth?: number;
 }
 
-export default function Icon({ name, size = 20, color = '#2D3748', strokeWidth = 1.6 }: IconProps) {
+export default function Icon({ name, size = 20, color = '#2D3748', strokeWidth = 1.6 }: IconProps): JSX.Element | null {
   const props = {
     width: size, height: size, viewBox: '0 0 24 24',
     fill: 'none', stroke: color, strokeWidth,

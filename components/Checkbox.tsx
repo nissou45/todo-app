@@ -12,7 +12,7 @@ interface CheckboxProps {
   C: ColorScheme;
 }
 
-export default function Checkbox({ checked, color, size = 22, onToggle, C }: CheckboxProps) {
+export default function Checkbox({ checked, color, size = 22, onToggle, C }: CheckboxProps): JSX.Element {
   const scale = useRef(new Animated.Value(checked ? 1 : 0)).current;
 
   useEffect(() => {
