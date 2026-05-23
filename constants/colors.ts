@@ -50,6 +50,20 @@ export const DARK: ColorScheme = {
   text: '#EDE8E0',
   textMuted: '#8888AA',
   border: '#333355',
+  background: '#1A1A2E',
+  surface: '#252540',
+  surface2: '#1E1E38',
+  accent: '#45B7D1',
+  teal: '#4ECDC4',
+  yellow: '#FFE66D',
+  red: '#FF6B6B',
+  done: '#4ECDC4',
+  titleHome: '#45B7D1',
+  titleCats: '#4ECDC4',
+  titleDetail: '#45B7D1',
+  titleStats: '#45B7D1',
+  textPrimary: '#EDE8E0',
+  textSecondary: '#8888AA',
 };
 
 export const LIGHT: ColorScheme = {
@@ -58,6 +72,20 @@ export const LIGHT: ColorScheme = {
   text: '#2D3748',
   textMuted: '#9CA3AF',
   border: '#F0F0F0',
+  background: '#FAFAFA',
+  surface: '#FFFFFF',
+  surface2: '#F4F4F6',
+  accent: '#45B7D1',
+  teal: '#4ECDC4',
+  yellow: '#FFE66D',
+  red: '#FF6B6B',
+  done: '#4ECDC4',
+  titleHome: '#45B7D1',
+  titleCats: '#4ECDC4',
+  titleDetail: '#45B7D1',
+  titleStats: '#45B7D1',
+  textPrimary: '#2D3748',
+  textSecondary: '#6B7280',
 };
 
 export const STORAGE_KEY = '@todos_v1';

@@ -288,21 +288,21 @@ export default function HomeScreen({ navigation, todos, setTodos, isDark, C, use
         {/* Filters */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 20, gap: 8 }}>
-          <Chip label="Tout" active={filter === 'all'} onPress={() => setFilter('all')} />
+          <Chip label="Tout" active={filter === 'all'} onPress={() => setFilter('all')} C={C} />
           <Chip label="En cours" active={filter === 'active'} count={remaining}
-            onPress={() => setFilter('active')} />
+            onPress={() => setFilter('active')} C={C} />
           <Chip label="Terminé" active={filter === 'completed'} count={doneCount}
-            onPress={() => setFilter('completed')} />
+            onPress={() => setFilter('completed')} C={C} />
         </ScrollView>
 
         {/* Category filter chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 10, gap: 6 }}>
-          <Chip label="Toutes" active={filterCat === 'all'} onPress={() => setFilterCat('all')} />
+          <Chip label="Toutes" active={filterCat === 'all'} onPress={() => setFilterCat('all')} C={C} />
           {CATEGORIES.map((cat) => (
             <Chip key={cat.id} label={cat.name} color={cat.color}
               active={filterCat === cat.id} count={todos.filter(t => t.categoryId === cat.id).length}
-              onPress={() => setFilterCat(cat.id)} />
+              onPress={() => setFilterCat(cat.id)} C={C} />
           ))}
         </ScrollView>
 
@@ -462,8 +462,8 @@ export default function HomeScreen({ navigation, todos, setTodos, isDark, C, use
         />
       )}
 
-      <FAB onPress={() => navigation && navigation.navigate('Create')} />
-      <TabBar active="home" onTab={(tab) => {
+      <FAB onPress={() => navigation && navigation.navigate('Create')} C={C} />
+      <TabBar active="home" C={C} onTab={(tab) => {
         if (!navigation) return;
         if (tab === 'cats')  navigation.navigate('Categories');
         if (tab === 'stats') navigation.navigate('Stats');

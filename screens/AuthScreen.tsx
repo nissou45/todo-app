@@ -13,7 +13,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { supabase } from '../lib/supabase';
-import { COLORS } from '../constants/colors';
 import { FONTS } from '../constants/typography';
 import { SHADOWS } from '../constants/shadows';
 import { ColorScheme, RootStackParamList } from '../types';
@@ -48,7 +47,7 @@ export default function AuthScreen({ navigation, isDark, C }: Props) {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.background }}>
       <View style={{
         flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8,
       }}>
@@ -56,14 +55,14 @@ export default function AuthScreen({ navigation, isDark, C }: Props) {
           onPress={() => navigation.goBack()}
           style={[{
             width: 40, height: 40, borderRadius: 20,
-            backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
+            backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
             alignItems: 'center', justifyContent: 'center',
           }, SHADOWS.sm]}>
-          <Icon name="chevronL" size={18} color={COLORS.textSecondary} />
+          <Icon name="chevronL" size={18} color={C.textSecondary} />
         </Pressable>
         <Text style={{
           flex: 1, fontFamily: FONTS.displayBold, fontSize: 17,
-          color: COLORS.textPrimary, textAlign: 'center',
+          color: C.textPrimary, textAlign: 'center',
         }}>{isSignUp ? 'Inscription' : 'Connexion'}</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -75,15 +74,15 @@ export default function AuthScreen({ navigation, isDark, C }: Props) {
           <View style={{ marginBottom: 40, alignItems: 'center' }}>
             <View style={{
               width: 80, height: 80, borderRadius: 40,
-              backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
+              backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
               alignItems: 'center', justifyContent: 'center', marginBottom: 16,
             }}>
-              <Icon name="user" size={36} color={COLORS.accent} />
+              <Icon name="user" size={36} color={C.accent} />
             </View>
-            <Text style={{ fontFamily: FONTS.display, fontSize: 28, color: COLORS.textPrimary }}>
+            <Text style={{ fontFamily: FONTS.display, fontSize: 28, color: C.textPrimary }}>
               {isSignUp ? 'Créer un compte' : 'Bon retour !'}
             </Text>
-            <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.textSecondary, marginTop: 8 }}>
+            <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: C.textSecondary, marginTop: 8 }}>
               Synchronisez vos tâches sur tous vos appareils
             </Text>
           </View>
@@ -93,18 +92,18 @@ export default function AuthScreen({ navigation, isDark, C }: Props) {
               <Text style={{
                 fontFamily: FONTS.bodyMedium, fontSize: 11,
                 letterSpacing: 1.4, textTransform: 'uppercase',
-                color: COLORS.textMuted, marginBottom: 8, marginTop: 0,
+                color: C.textMuted, marginBottom: 8, marginTop: 0,
               }}>Email</Text>
               <TextInput
                 style={{
-                  backgroundColor: COLORS.surface, borderRadius: 14,
-                  padding: 14, fontSize: 16, color: COLORS.textPrimary,
-                  borderWidth: 1, borderColor: COLORS.border,
+                  backgroundColor: C.surface, borderRadius: 14,
+                  padding: 14, fontSize: 16, color: C.textPrimary,
+                  borderWidth: 1, borderColor: C.border,
                 }}
                 value={email}
                 onChangeText={setEmail}
                 placeholder="votre@email.com"
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor={C.textMuted}
                 autoCapitalize="none"
                 keyboardType="email-address"
               />
@@ -114,18 +113,18 @@ export default function AuthScreen({ navigation, isDark, C }: Props) {
               <Text style={{
                 fontFamily: FONTS.bodyMedium, fontSize: 11,
                 letterSpacing: 1.4, textTransform: 'uppercase',
-                color: COLORS.textMuted, marginBottom: 8, marginTop: 0,
+                color: C.textMuted, marginBottom: 8, marginTop: 0,
               }}>Mot de passe</Text>
               <TextInput
                 style={{
-                  backgroundColor: COLORS.surface, borderRadius: 14,
-                  padding: 14, fontSize: 16, color: COLORS.textPrimary,
-                  borderWidth: 1, borderColor: COLORS.border,
+                  backgroundColor: C.surface, borderRadius: 14,
+                  padding: 14, fontSize: 16, color: C.textPrimary,
+                  borderWidth: 1, borderColor: C.border,
                 }}
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor={C.textMuted}
                 secureTextEntry
               />
             </View>
@@ -133,10 +132,10 @@ export default function AuthScreen({ navigation, isDark, C }: Props) {
             <Pressable
               style={({ pressed }) => ({
                 height: 56, borderRadius: 28,
-                backgroundColor: COLORS.accent, marginTop: 24,
+                backgroundColor: C.accent, marginTop: 24,
                 alignItems: 'center', justifyContent: 'center',
                 transform: [{ scale: pressed ? 0.97 : 1 }],
-                ...SHADOWS.tinted(COLORS.accent),
+                ...SHADOWS.tinted(C.accent),
               })}
               onPress={handleAuth}
               disabled={loading}>
@@ -150,7 +149,7 @@ export default function AuthScreen({ navigation, isDark, C }: Props) {
             </Pressable>
 
             <Pressable onPress={() => setIsSignUp(!isSignUp)} style={{ alignSelf: 'center', marginTop: 16 }}>
-              <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.textSecondary }}>
+              <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: C.textSecondary }}>
                 {isSignUp
                   ? 'Déjà un compte ? Connectez-vous'
                   : "Pas de compte ? Inscrivez-vous"}

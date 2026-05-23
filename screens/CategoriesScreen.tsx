@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
 import Icon from '../components/Icon';
 import TabBar from '../components/TabBar';
-import { COLORS, CATEGORIES } from '../constants/colors';
+import { CATEGORIES } from '../constants/colors';
 import { FONTS } from '../constants/typography';
 import { SHADOWS } from '../constants/shadows';
 import { Todo, ColorScheme, RootStackParamList } from '../types';
@@ -17,16 +17,17 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Categories'> & {
   C: ColorScheme;
 };
 
-function CategoryCard({ cat, count, done, onPress }: {
+function CategoryCard({ cat, count, done, onPress, C }: {
   cat: typeof CATEGORIES[0];
   count: number;
   done: number;
   onPress?: () => void;
+  C: ColorScheme;
 }) {
   const pct = count > 0 ? Math.round((done / count) * 100) : 0;
-  const textColor = cat.isLight ? COLORS.textPrimary : '#FFFFFF';
+  const textColor = cat.isLight ? C.textPrimary : '#FFFFFF';
   const r = 16;
-  const C = 2 * Math.PI * r;
+  const circumference = 2 * Math.PI * r;
 
   return (
     <Pressable
@@ -77,7 +78,7 @@ function CategoryCard({ cat, count, done, onPress }: {
             <Svg width={38} height={38} viewBox="0 0 38 38" style={{ transform: [{ rotate: '-90deg' }] }}>
               <Circle cx="19" cy="19" r={r} stroke="rgba(255,255,255,0.3)" strokeWidth={3} fill="none" />
               <Circle cx="19" cy="19" r={r} stroke={textColor} strokeWidth={3} fill="none"
-                strokeDasharray={C} strokeDashoffset={C * (1 - pct / 100)} strokeLinecap="round" />
+                strokeDasharray={circumference} strokeDashoffset={circumference * (1 - pct / 100)} strokeLinecap="round" />
             </Svg>
             <View style={{
               position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
@@ -101,32 +102,32 @@ export default function CategoriesScreen({ navigation, todos, isDark, C }: Props
   for (let i = 0; i < CATEGORIES.length; i += 2) pairs.push([CATEGORIES[i], CATEGORIES[i + 1]]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.background }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
         <View style={{
           paddingHorizontal: 24, paddingTop: 8,
           flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
         }}>
           <View>
-            <Text style={{ fontFamily: FONTS.display, fontSize: 32, color: COLORS.titleCats, letterSpacing: -0.5 }}>
+            <Text style={{ fontFamily: FONTS.display, fontSize: 32, color: C.titleCats, letterSpacing: -0.5 }}>
               Listes
             </Text>
             <Text style={{
               fontFamily: FONTS.bodyMedium, fontSize: 13, marginTop: 8,
-              letterSpacing: 0.4, textTransform: 'uppercase', color: COLORS.textSecondary,
+              letterSpacing: 0.4, textTransform: 'uppercase', color: C.textSecondary,
             }}>{CATEGORIES.length} catégories · {total} tâches</Text>
           </View>
           <View style={{
             width: 38, height: 38, borderRadius: 19,
-            borderWidth: 1, borderColor: COLORS.border,
+            borderWidth: 1, borderColor: C.border,
             alignItems: 'center', justifyContent: 'center',
           }}>
-            <Icon name="search" size={18} color={COLORS.textSecondary} />
+            <Icon name="search" size={18} color={C.textSecondary} />
           </View>
         </View>
 
         <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
-          <View style={[{ borderRadius: 26, overflow: 'hidden' }, SHADOWS.tinted(COLORS.red)]}>
+          <View style={[{ borderRadius: 26, overflow: 'hidden' }, SHADOWS.tinted(C.red)]}>
             <LinearGradient
               colors={['#FF6B6B', '#FF8585']}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -169,7 +170,7 @@ export default function CategoriesScreen({ navigation, todos, isDark, C }: Props
         }}>
           <Text style={{
             fontFamily: FONTS.bodyMedium, fontSize: 11,
-            letterSpacing: 1.4, textTransform: 'uppercase', color: COLORS.textMuted,
+            letterSpacing: 1.4, textTransform: 'uppercase', color: C.textMuted,
           }}>Vos listes</Text>
         </View>
 
@@ -180,7 +181,7 @@ export default function CategoriesScreen({ navigation, todos, isDark, C }: Props
                 const count = todos.filter((t) => t.categoryId === cat.id).length;
                 const done = todos.filter((t) => t.categoryId === cat.id && t.completed).length;
                 return (
-                  <CategoryCard key={cat.id} cat={cat} count={count} done={done}
+                  <CategoryCard key={cat.id} cat={cat} count={count} done={done} C={C}
                     onPress={() => navigation.navigate('Home')} />
                 );
               })}
@@ -190,7 +191,7 @@ export default function CategoriesScreen({ navigation, todos, isDark, C }: Props
         </View>
       </ScrollView>
 
-      <TabBar active="cats" onTab={(tab) => {
+      <TabBar active="cats" C={C} onTab={(tab) => {
         if (!navigation) return;
         if (tab === 'home')  navigation.navigate('Home');
         if (tab === 'stats') navigation.navigate('Stats');

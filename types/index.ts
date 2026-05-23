@@ -24,6 +24,20 @@ export interface ColorScheme {
   text: string;
   textMuted: string;
   border: string;
+  background: string;
+  surface: string;
+  surface2: string;
+  accent: string;
+  teal: string;
+  yellow: string;
+  red: string;
+  done: string;
+  titleHome: string;
+  titleCats: string;
+  titleDetail: string;
+  titleStats: string;
+  textPrimary: string;
+  textSecondary: string;
 }
 
 export type ScreenName = 'home' | 'detail' | 'categories' | 'auth' | 'stats' | 'calendar' | 'create';

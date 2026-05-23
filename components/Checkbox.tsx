@@ -2,15 +2,17 @@ import React, { useEffect, useRef } from 'react';
 import { Pressable, View, Animated } from 'react-native';
 import Icon from './Icon';
 import { COLORS } from '../constants/colors';
+import { ColorScheme } from '../types';
 
 interface CheckboxProps {
   checked?: boolean;
   color?: string;
   size?: number;
   onToggle?: () => void;
+  C: ColorScheme;
 }
 
-export default function Checkbox({ checked, color, size = 22, onToggle }: CheckboxProps) {
+export default function Checkbox({ checked, color, size = 22, onToggle, C }: CheckboxProps) {
   const scale = useRef(new Animated.Value(checked ? 1 : 0)).current;
 
   useEffect(() => {
@@ -21,8 +23,8 @@ export default function Checkbox({ checked, color, size = 22, onToggle }: Checkb
     }).start();
   }, [checked]);
 
-  const ringColor = color || COLORS.border2;
-  const fillColor = color || COLORS.accent;
+  const ringColor = color || C.border;
+  const fillColor = color || C.accent;
 
   return (
     <Pressable onPress={onToggle} hitSlop={6}>

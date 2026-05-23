@@ -3,6 +3,7 @@ import { Pressable, View, Text } from 'react-native';
 import { COLORS } from '../constants/colors';
 import { FONTS } from '../constants/typography';
 import { SHADOWS } from '../constants/shadows';
+import { ColorScheme } from '../types';
 
 interface ChipProps {
   label: string;
@@ -10,10 +11,11 @@ interface ChipProps {
   active?: boolean;
   color?: string;
   onPress?: () => void;
+  C: ColorScheme;
 }
 
-export default function Chip({ label, count, active, color, onPress }: ChipProps) {
-  const accent = color || COLORS.accent;
+export default function Chip({ label, count, active, color, onPress, C }: ChipProps) {
+  const accent = color || C.accent;
   return (
     <Pressable onPress={onPress}>
       <View style={[{
@@ -22,16 +24,16 @@ export default function Chip({ label, count, active, color, onPress }: ChipProps
         borderRadius: 18,
         backgroundColor: active ? accent : 'transparent',
         borderWidth: 1,
-        borderColor: active ? accent : COLORS.border,
+        borderColor: active ? accent : C.border,
       }, active && SHADOWS.tinted(accent)]}>
         <Text style={{
           fontFamily: FONTS.bodyMedium, fontSize: 14,
-          color: active ? '#FFFFFF' : COLORS.textSecondary,
+          color: active ? '#FFFFFF' : C.textSecondary,
         }}>{label}</Text>
         {count != null && (
           <Text style={{
             marginLeft: 8, fontSize: 12,
-            color: active ? '#FFFFFF' : COLORS.textMuted,
+            color: active ? '#FFFFFF' : C.textMuted,
             opacity: active ? 0.85 : 1,
           }}>{count}</Text>
         )}

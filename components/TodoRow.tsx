@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { View, Text, Pressable, Animated } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
-import { CATEGORIES, COLORS } from '../constants/colors';
+import { CATEGORIES } from '../constants/colors';
 import { FONTS } from '../constants/typography';
 import { formatDate, isOverdue } from '../utils/dateHelpers';
 import { Todo, ColorScheme } from '../types';
@@ -36,7 +36,7 @@ export default function TodoRow({ item, onToggle, onDelete, onPress, drag, isAct
       <Text style={[styles.todoText, item.completed && styles.done]}>
         {parts.map((part, i) =>
           part.toLowerCase() === searchQuery.toLowerCase() ? (
-            <Text key={i} style={{ backgroundColor: COLORS.accent + '44', color: COLORS.accent, fontWeight: '700' }}>
+            <Text key={i} style={{ backgroundColor: C.accent + '44', color: C.accent, fontWeight: '700' }}>
               {part}
             </Text>
           ) : (
@@ -99,6 +99,7 @@ export default function TodoRow({ item, onToggle, onDelete, onPress, drag, isAct
             color={cat.color}
             size={22}
             onToggle={() => onToggle(item.id)}
+            C={C}
           />
           <View style={{ flex: 1 }}>
             {renderText()}

@@ -4,6 +4,7 @@ import Icon from './Icon';
 import { COLORS } from '../constants/colors';
 import { FONTS } from '../constants/typography';
 import { SHADOWS } from '../constants/shadows';
+import { ColorScheme } from '../types';
 
 const TABS = [
   { id: 'home',  icon: 'home',  label: "Aujourd'hui" },
@@ -15,15 +16,16 @@ const TABS = [
 interface TabBarProps {
   active?: string;
   onTab?: (tab: string) => void;
+  C: ColorScheme;
 }
 
-export default function TabBar({ active = 'home', onTab }: TabBarProps) {
+export default function TabBar({ active = 'home', onTab, C }: TabBarProps) {
   return (
     <View style={[{
       position: 'absolute', bottom: 28, left: 16, right: 16,
       height: 64, borderRadius: 32,
-      backgroundColor: 'rgba(255,255,255,0.96)',
-      borderWidth: 1, borderColor: 'rgba(45,55,72,0.04)',
+      backgroundColor: C.card,
+      borderWidth: 1, borderColor: C.border,
       flexDirection: 'row', alignItems: 'center',
       justifyContent: 'space-around', paddingHorizontal: 12,
       zIndex: 30,
@@ -43,16 +45,16 @@ export default function TabBar({ active = 'home', onTab }: TabBarProps) {
               <View style={{
                 position: 'absolute', top: 0, width: 4, height: 4,
                 borderRadius: 2,
-                backgroundColor: COLORS.accent,
+                backgroundColor: C.accent,
               }} />
             )}
             <Icon name={t.icon} size={22}
-              color={isActive ? COLORS.accent : COLORS.textMuted}
+              color={isActive ? C.accent : C.textMuted}
               strokeWidth={isActive ? 1.9 : 1.5} />
             <Text style={{
               fontFamily: FONTS.bodyMedium, fontSize: 10,
               marginTop: 3, letterSpacing: 0.2,
-              color: isActive ? COLORS.accent : COLORS.textMuted,
+              color: isActive ? C.accent : C.textMuted,
             }}>{t.label}</Text>
           </Pressable>
         );

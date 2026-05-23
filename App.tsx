@@ -19,7 +19,7 @@ import AuthScreen from "./screens/AuthScreen";
 import StatsScreen from "./screens/StatsScreen";
 import CalendarScreen from "./screens/CalendarScreen";
 import CreateScreen from "./screens/CreateScreen";
-import { STORAGE_KEY, DARK, LIGHT, COLORS } from "./constants/colors";
+import { STORAGE_KEY, DARK, LIGHT } from "./constants/colors";
 import { useAppFonts } from "./constants/typography";
 import { Todo, RootStackParamList } from "./types";
 import { useNotifications } from "./hooks/useNotifications";
@@ -73,7 +73,7 @@ export default function App() {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newTodos));
 
     if (user) {
-      syncTodos(newTodos, user.id);
+      await syncTodos(newTodos, user.id);
     }
   };
 
@@ -82,12 +82,12 @@ export default function App() {
       <View
         style={{
           flex: 1,
-          backgroundColor: COLORS.background,
+          backgroundColor: C.bg,
           justifyContent: "center",
           alignItems: "center",
         }}
       >
-        <ActivityIndicator color={COLORS.accent} size="large" />
+        <ActivityIndicator color={C.accent} size="large" />
       </View>
     );
   }
