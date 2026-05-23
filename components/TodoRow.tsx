@@ -2,10 +2,12 @@ import React, { useRef } from 'react';
 import { View, Text, Pressable, Animated } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
-import { CATEGORIES } from '../constants/theme';
+import { CATEGORIES, COLORS } from '../constants/colors';
+import { FONTS } from '../constants/typography';
 import { formatDate, isOverdue } from '../utils/dateHelpers';
 import { Todo, ColorScheme } from '../types';
 import { StyleSheet } from 'react-native';
+import Checkbox from './Checkbox';
 
 interface TodoRowProps {
   item: Todo;
@@ -34,7 +36,7 @@ export default function TodoRow({ item, onToggle, onDelete, onPress, drag, isAct
       <Text style={[styles.todoText, item.completed && styles.done]}>
         {parts.map((part, i) =>
           part.toLowerCase() === searchQuery.toLowerCase() ? (
-            <Text key={i} style={{ backgroundColor: '#7C3AED44', color: '#7C3AED', fontWeight: '700' }}>
+            <Text key={i} style={{ backgroundColor: COLORS.accent + '44', color: COLORS.accent, fontWeight: '700' }}>
               {part}
             </Text>
           ) : (
@@ -75,7 +77,7 @@ export default function TodoRow({ item, onToggle, onDelete, onPress, drag, isAct
       rightThreshold={40}
       overshootRight={false}
       friction={2}
-      enabled={!isActive} // Désactive le swipe pendant le drag
+      enabled={!isActive}
     >
       <Pressable
         onPress={() => onPress(item)}
@@ -84,48 +86,30 @@ export default function TodoRow({ item, onToggle, onDelete, onPress, drag, isAct
           drag?.();
         }}
         delayLongPress={200}
-        activeOpacity={0.8}
+      
       >
         <View style={[
           styles.todoCard,
           overdue && styles.overdueCard,
-          isActive && { opacity: 0.5, scale: 1.02, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84 }
+          isActive && { opacity: 0.5, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84 }
         ]}>
           <View style={[styles.catStripe, { backgroundColor: cat.color }]} />
-          <Pressable
-            onPress={() => onToggle(item.id)}
-            style={[
-              styles.checkbox,
-              { borderColor: cat.color },
-              item.completed && { backgroundColor: cat.color },
-            ]}
-          >
-            {item.completed && (
-              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>
-                ✓
-              </Text>
-            )}
-          </Pressable>
+          <Checkbox
+            checked={item.completed}
+            color={cat.color}
+            size={22}
+            onToggle={() => onToggle(item.id)}
+          />
           <View style={{ flex: 1 }}>
             {renderText()}
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                marginTop: 4,
-              }}
-            >
+            <View style={{
+              flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4,
+            }}>
               <Text style={[styles.catLabel, { color: cat.color }]}>
                 {cat.name}
               </Text>
               {item.dueDate && (
-                <Text
-                  style={[
-                    styles.dateLabel,
-                    { color: overdue ? '#EF4444' : C.textMuted },
-                  ]}
-                >
+                <Text style={[styles.dateLabel, { color: overdue ? '#EF4444' : C.textMuted }]}>
                   {overdue ? '⚠ ' : ''}
                   {formatDate(item.dueDate)}
                 </Text>

@@ -1,47 +1,42 @@
 import React from 'react';
-import { View, TextInput, StyleSheet, Pressable, Text } from 'react-native';
+import { View, TextInput, Pressable } from 'react-native';
+import Icon from './Icon';
+import { COLORS } from '../constants/colors';
+import { FONTS } from '../constants/typography';
 import { ColorScheme } from '../types';
 
 interface SearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
-  C: ColorScheme;
+  C?: ColorScheme;
 }
 
-export default function SearchBar({ value, onChangeText, C }: SearchBarProps) {
+export default function SearchBar({ value, onChangeText }: SearchBarProps) {
   return (
-    <View style={[s.container, { backgroundColor: C.card, borderColor: C.border }]}>
-      <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
+    <View style={{
+      flexDirection: 'row', alignItems: 'center',
+      marginHorizontal: 16, marginBottom: 12,
+      paddingHorizontal: 12, paddingVertical: 8,
+      borderRadius: 12,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1, borderColor: COLORS.border,
+    }}>
+      <Icon name="search" size={16} color={COLORS.textMuted} />
       <TextInput
-        style={[s.input, { color: C.text }]}
+        style={{
+          flex: 1, fontFamily: FONTS.body, fontSize: 14,
+          color: COLORS.textPrimary, padding: 0, marginLeft: 8,
+        }}
         value={value}
         onChangeText={onChangeText}
         placeholder="Rechercher une tâche..."
-        placeholderTextColor={C.textMuted}
+        placeholderTextColor={COLORS.textMuted}
       />
       {value.length > 0 && (
         <Pressable onPress={() => onChangeText('')}>
-          <Text style={{ color: C.textMuted, fontSize: 18 }}>✕</Text>
+          <Icon name="x" size={16} color={COLORS.textMuted} />
         </Pressable>
       )}
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  input: {
-    flex: 1,
-    fontSize: 14,
-    padding: 0,
-  },
-});

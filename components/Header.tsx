@@ -1,5 +1,8 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
+import Icon from './Icon';
+import { COLORS } from '../constants/colors';
+import { FONTS } from '../constants/typography';
 import { ColorScheme } from '../types';
 
 interface HeaderProps {
@@ -9,52 +12,38 @@ interface HeaderProps {
   leftLabel?: string;
   onRight?: () => void;
   rightLabel?: string;
-  C: ColorScheme;
+  C?: ColorScheme;
 }
 
-export default function Header({ title, onBack, onLeft, leftLabel, onRight, rightLabel, C }: HeaderProps) {
+export default function Header({ title, onBack, onLeft, leftLabel, onRight, rightLabel }: HeaderProps) {
   return (
-    <View
-      style={[
-        styles.container,
-        { borderBottomColor: C.border, backgroundColor: C.bg },
-      ]}
-    >
+    <View style={{
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 16, paddingVertical: 14,
+    }}>
       {onBack && (
-        <Pressable onPress={onBack} style={styles.back}>
-          <Text style={styles.backText}>‹ Retour</Text>
+        <Pressable onPress={onBack} style={{ marginRight: 12 }}>
+          <Icon name="chevronL" size={20} color={COLORS.accent} />
         </Pressable>
       )}
       {onLeft && (
-        <Pressable onPress={onLeft} style={styles.left}>
-          <Text style={styles.leftText}>{leftLabel}</Text>
+        <Pressable onPress={onLeft} style={{ marginRight: 12 }}>
+          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: COLORS.accent }}>{leftLabel}</Text>
         </Pressable>
       )}
-      <Text style={[styles.title, { color: C.text, textAlign: onLeft || onBack ? 'center' : 'left' }]}>{title}</Text>
+      <Text style={{
+        flex: 1,
+        fontFamily: FONTS.displayBold, fontSize: 17,
+        color: COLORS.textPrimary,
+        textAlign: onLeft || onBack ? 'center' : 'left',
+      }}>{title}</Text>
       {onRight ? (
         <Pressable onPress={onRight}>
-          <Text style={styles.rightText}>{rightLabel}</Text>
+          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: COLORS.accent }}>{rightLabel}</Text>
         </Pressable>
       ) : (
-        <View style={styles.placeholder} />
+        <View style={{ width: 60 }} />
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-  },
-  back: { marginRight: 12 },
-  backText: { fontSize: 16, color: '#7C3AED', fontWeight: '600' },
-  left: { marginRight: 12 },
-  leftText: { fontSize: 16, color: '#7C3AED', fontWeight: '600' },
-  title: { flex: 1, fontSize: 17, fontWeight: '700' },
-  rightText: { fontSize: 15, color: '#7C3AED', fontWeight: '600' },
-  placeholder: { width: 60 },
-});
