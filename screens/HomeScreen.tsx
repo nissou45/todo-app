@@ -14,7 +14,6 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
 import Chip from '../components/Chip';
-import Checkbox from '../components/Checkbox';
 import FAB from '../components/FAB';
 import TabBar from '../components/TabBar';
 import { CATEGORIES, COLORS } from '../constants/colors';
@@ -126,6 +125,7 @@ export default function HomeScreen({ navigation, todos, setTodos, isDark, C, use
       reminderEnabled: !!dueDate,
       updatedAt: now,
       pomodoroCount: 0,
+      priority: false,
     };
     const next = [...todos, newTodo];
     setTodos(next);

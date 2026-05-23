@@ -13,7 +13,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Icon from '../components/Icon';
-import Checkbox from '../components/Checkbox';
 import { CATEGORIES, COLORS, getCategory } from '../constants/colors';
 import { FONTS } from '../constants/typography';
 import { SHADOWS } from '../constants/shadows';

@@ -181,7 +181,7 @@ export default function CategoriesScreen({ navigation, todos, isDark, C }: Props
                 const done = todos.filter((t) => t.categoryId === cat.id && t.completed).length;
                 return (
                   <CategoryCard key={cat.id} cat={cat} count={count} done={done}
-                    onPress={() => navigation.navigate('Detail', { todoId: '' })} />
+                    onPress={() => navigation.navigate('Home')} />
                 );
               })}
               {row.length === 1 && <View style={{ flex: 1 }} />}

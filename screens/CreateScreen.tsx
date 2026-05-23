@@ -27,6 +27,14 @@ export default function CreateScreen({ navigation, todos, setTodos, isDark }: Pr
   const [tempDate, setTempDate] = useState(new Date());
   const [timeValue, setTimeValue] = useState('');
 
+  const mergeTimeIntoDueDate = (time: Date) => {
+    const base = dueDate || new Date();
+    const merged = new Date(base);
+    merged.setHours(time.getHours(), time.getMinutes(), 0, 0);
+    setDueDate(merged);
+    setTimeValue(merged.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+  };
+
   const activeCat = CATEGORIES.find((c) => c.id === cat) || CATEGORIES[0];
 
   const translateY = useRef(new Animated.Value(800)).current;
@@ -54,6 +62,7 @@ export default function CreateScreen({ navigation, todos, setTodos, isDark }: Pr
       reminderEnabled: !!dueDate,
       updatedAt: now,
       pomodoroCount: 0,
+      priority,
     };
     const next = [...todos, newTodo];
     setTodos(next);
@@ -260,7 +269,7 @@ export default function CreateScreen({ navigation, todos, setTodos, isDark }: Pr
                 onChange={(_e: DateTimePickerEvent, date?: Date) => {
                   if (date) {
                     setTempDate(date);
-                    setTimeValue(date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+                    mergeTimeIntoDueDate(date);
                     setShowTimePicker(false);
                   }
                 }}
@@ -274,7 +283,7 @@ export default function CreateScreen({ navigation, todos, setTodos, isDark }: Pr
               display="default"
               onChange={(_e: DateTimePickerEvent, date?: Date) => {
                 setShowTimePicker(false);
-                if (date) setTimeValue(date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+                if (date) mergeTimeIntoDueDate(date);
               }}
             />
           )}

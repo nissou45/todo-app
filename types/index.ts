@@ -7,6 +7,7 @@ export interface Todo {
   reminderEnabled: boolean;
   updatedAt: string;
   pomodoroCount: number;
+  priority?: boolean;
 }
 
 export interface Category {
