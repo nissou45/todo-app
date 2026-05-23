@@ -71,21 +71,13 @@ export default function App(): JSX.Element {
   }, [user]);
 
   const saveTodos = useCallback(async (newTodos: Todo[] | ((prev: Todo[]) => Todo[])): Promise<void> => {
-    if (typeof newTodos === 'function') {
-      setTodos(newTodos);
-      const resolved = newTodos(todos);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(resolved));
-      if (user) {
-        await syncTodos(resolved, user.id);
-      }
-    } else {
-      setTodos(newTodos);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newTodos));
-      if (user) {
-        await syncTodos(newTodos, user.id);
-      }
+    const resolved: Todo[] = typeof newTodos === 'function' ? newTodos(todosRef.current) : newTodos;
+    setTodos(resolved);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(resolved));
+    if (user) {
+      await syncTodos(resolved, user.id);
     }
-  }, [todos, user, syncTodos]);
+  }, [user, syncTodos]);
 
   if (!fontsLoaded || authLoading || !isReady) {
     return (
