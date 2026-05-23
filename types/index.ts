@@ -13,7 +13,8 @@ export interface Category {
   id: string;
   name: string;
   color: string;
-  bg: string;
+  icon: string;
+  isLight: boolean;
 }
 
 export interface ColorScheme {
@@ -24,7 +25,7 @@ export interface ColorScheme {
   border: string;
 }
 
-export type ScreenName = 'home' | 'detail' | 'categories' | 'auth' | 'stats';
+export type ScreenName = 'home' | 'detail' | 'categories' | 'auth' | 'stats' | 'calendar' | 'create';
 export type NavigateFn = (screen: ScreenName, todo?: Todo | null) => void;
 
 export type RootStackParamList = {
@@ -33,4 +34,6 @@ export type RootStackParamList = {
   Categories: undefined;
   Auth: undefined;
   Stats: undefined;
+  Calendar: undefined;
+  Create: undefined;
 };
