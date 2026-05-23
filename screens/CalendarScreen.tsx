@@ -5,7 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Icon from '../components/Icon';
 import FAB from '../components/FAB';
 import TabBar from '../components/TabBar';
-import { COLORS, CATEGORIES, getCategory } from '../constants/colors';
+import { COLORS, getCategory } from '../constants/colors';
 import { FONTS } from '../constants/typography';
 import { SHADOWS } from '../constants/shadows';
 import { Todo, ColorScheme, RootStackParamList } from '../types';
@@ -16,45 +16,26 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Calendar'> & {
   C: ColorScheme;
 };
 
-const TODAY = 18;
-const DAYS_IN_MONTH = 31;
-const PREV_DAYS = [23, 24, 25, 26, 27, 28];
 const WEEK_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
-const WEEK_TASKS: Record<number, string[]> = {
-  1: ['travail'], 3: ['loisirs'], 5: ['personnel', 'travail'],
-  8: ['urgent'], 10: ['travail'], 12: ['loisirs', 'travail'],
-  15: ['personnel'], 17: ['travail', 'travail', 'urgent'],
-  18: ['travail', 'loisirs', 'urgent', 'personnel'],
-  19: ['travail'], 20: ['loisirs'],
-  22: ['personnel'], 24: ['travail', 'urgent'],
-  27: ['loisirs'], 28: ['travail'],
-};
-
-const TODAY_TASKS = [
-  { title: 'Course matinale', cat: 'loisirs', time: '07:30' },
-  { title: 'Design review Q1', cat: 'travail', time: '10:00' },
-  { title: 'Cours React Native', cat: 'urgent', time: '16:00' },
-];
-
-function DayCell({ day, isToday, tasks }: { day: number; isToday: boolean; tasks: string[] }) {
+function DayCell({ day, isToday, catIds }: { day: number; isToday: boolean; catIds: string[] }) {
   return (
     <View style={[{
       aspectRatio: 0.9, borderRadius: 12,
-      backgroundColor: isToday ? COLORS.accent : (tasks.length ? COLORS.surface : 'transparent'),
-      borderWidth: isToday ? 0 : (tasks.length ? 1 : 1),
-      borderColor: tasks.length ? COLORS.border : 'transparent',
+      backgroundColor: isToday ? COLORS.accent : (catIds.length ? COLORS.surface : 'transparent'),
+      borderWidth: isToday ? 0 : (catIds.length ? 1 : 1),
+      borderColor: catIds.length ? COLORS.border : 'transparent',
       padding: 6, justifyContent: 'space-between',
     }, isToday ? SHADOWS.tinted(COLORS.accent) : undefined,
-       tasks.length > 0 && !isToday ? SHADOWS.sm : undefined]}>
+       catIds.length > 0 && !isToday ? SHADOWS.sm : undefined]}>
       <Text style={{
         fontFamily: isToday ? FONTS.bodySemi : FONTS.bodyMedium,
         fontSize: 13,
         color: isToday ? '#FFFFFF' : COLORS.textPrimary,
       }}>{day}</Text>
-      {tasks.length > 0 && (
+      {catIds.length > 0 && (
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 2 }}>
-          {tasks.slice(0, 3).map((catId, i) => {
+          {catIds.slice(0, 3).map((catId, i) => {
             const c = getCategory(catId);
             return (
               <View key={i} style={{
@@ -69,11 +50,44 @@ function DayCell({ day, isToday, tasks }: { day: number; isToday: boolean; tasks
   );
 }
 
+function getMonthBoundaries(date: Date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const startWeekday = (firstDay.getDay() + 6) % 7; // Monday = 0
+  const prevMonthDays = new Date(year, month, 0).getDate();
+  return { year, month, daysInMonth, startWeekday, prevMonthDays };
+}
+
 export default function CalendarScreen({ navigation, todos }: Props) {
-  const cells: { day: number; prev?: boolean; isToday?: boolean; tasks: string[] }[] = [];
-  for (const d of PREV_DAYS) cells.push({ day: d, prev: true, tasks: [] });
-  for (let d = 1; d <= DAYS_IN_MONTH; d++) {
-    cells.push({ day: d, isToday: d === TODAY, tasks: WEEK_TASKS[d] || [] });
+  const now = new Date();
+  const today = now.getDate();
+  const { year, month, daysInMonth, startWeekday, prevMonthDays } = getMonthBoundaries(now);
+
+  // Build density map from real todos
+  const density: Record<number, string[]> = {};
+  const todayTodos: Todo[] = [];
+  todos.forEach((t) => {
+    if (!t.dueDate) return;
+    const d = new Date(t.dueDate);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const day = d.getDate();
+      if (!density[day]) density[day] = [];
+      density[day].push(t.categoryId);
+    }
+    if (d.toDateString() === now.toDateString()) {
+      todayTodos.push(t);
+    }
+  });
+
+  const cells: { day: number; prev?: boolean; isToday?: boolean; catIds: string[] }[] = [];
+  for (let d = startWeekday - 1; d >= 0; d--) {
+    cells.push({ day: prevMonthDays - d, prev: true, catIds: [] });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({ day: d, isToday: d === today, catIds: density[d] || [] });
   }
 
   return (
@@ -87,11 +101,11 @@ export default function CalendarScreen({ navigation, todos }: Props) {
             <Text style={{
               fontFamily: FONTS.display, fontSize: 32,
               color: COLORS.yellow, letterSpacing: -0.5,
-            }}>{new Date().toLocaleDateString('fr-FR', { month: 'long' }).replace(/^\w/, c => c.toUpperCase())}</Text>
+            }}>{now.toLocaleDateString('fr-FR', { month: 'long' }).replace(/^\w/, c => c.toUpperCase())}</Text>
             <Text style={{
               fontFamily: FONTS.bodyMedium, fontSize: 13, marginTop: 8,
               letterSpacing: 0.4, textTransform: 'uppercase', color: COLORS.textSecondary,
-            }}>{new Date().getFullYear()} · {todos.length} tâches</Text>
+            }}>{year} · {todos.length} tâches</Text>
           </View>
         </View>
 
@@ -117,7 +131,7 @@ export default function CalendarScreen({ navigation, todos }: Props) {
                   <Text style={{ fontSize: 13, color: COLORS.textMuted }}>{cell.day}</Text>
                 </View>
               ) : (
-                <DayCell day={cell.day} isToday={cell.isToday || false} tasks={cell.tasks} />
+                <DayCell day={cell.day} isToday={cell.isToday || false} catIds={cell.catIds} />
               )}
             </View>
           ))}
@@ -137,7 +151,7 @@ export default function CalendarScreen({ navigation, todos }: Props) {
                   letterSpacing: 1, textTransform: 'uppercase', color: COLORS.textMuted,
                 }}>Aujourd'hui</Text>
                 <Text style={{ marginTop: 4, fontFamily: FONTS.display, fontSize: 22, color: COLORS.textPrimary, letterSpacing: -0.2 }}>
-                  {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </Text>
               </View>
               <View style={{
@@ -145,33 +159,42 @@ export default function CalendarScreen({ navigation, todos }: Props) {
                 backgroundColor: 'rgba(78,205,196,0.12)',
               }}>
                 <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 12, color: COLORS.teal }}>
-                  {todos.length} tâches
+                  {todayTodos.length} tâche{todayTodos.length > 1 ? 's' : ''}
                 </Text>
               </View>
             </View>
 
-            {TODAY_TASKS.map((t, i) => {
-              const c = getCategory(t.cat);
-              return (
-                <Pressable
-                  key={i}
-                  onPress={() => navigation && navigation.navigate('Detail', { todoId: '' })}
-                  style={{
-                    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10,
-                    borderBottomWidth: i < TODAY_TASKS.length - 1 ? 0.5 : 0,
-                    borderBottomColor: COLORS.border,
-                  }}>
-                  <View style={{
-                    width: 3, height: 32, borderRadius: 2, backgroundColor: c.color,
-                  }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.textPrimary }}>{t.title}</Text>
-                    <Text style={{ fontSize: 12, color: COLORS.textMuted }}>{c.name}</Text>
-                  </View>
-                  <Text style={{ fontFamily: FONTS.body, fontSize: 13, color: COLORS.textSecondary }}>{t.time}</Text>
-                </Pressable>
-              );
-            })}
+            {todayTodos.length === 0 ? (
+              <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.textMuted, paddingVertical: 12, textAlign: 'center' }}>
+                Aucune tâche aujourd'hui
+              </Text>
+            ) : (
+              todayTodos.map((t, i) => {
+                const c = getCategory(t.categoryId);
+                return (
+                  <Pressable
+                    key={t.id}
+                    onPress={() => navigation && navigation.navigate('Detail', { todoId: t.id })}
+                    style={{
+                      flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10,
+                      borderBottomWidth: i < todayTodos.length - 1 ? 0.5 : 0,
+                      borderBottomColor: COLORS.border,
+                    }}>
+                    <View style={{
+                      width: 3, height: 32, borderRadius: 2, backgroundColor: c.color,
+                    }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.textPrimary,
+                        textDecorationLine: t.completed ? 'line-through' : 'none',
+                        opacity: t.completed ? 0.55 : 1,
+                      }}>{t.text}</Text>
+                      <Text style={{ fontSize: 12, color: COLORS.textMuted }}>{c.name}</Text>
+                    </View>
+                  </Pressable>
+                );
+              })
+            )}
           </View>
         </View>
       </ScrollView>
