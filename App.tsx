@@ -151,9 +151,17 @@ export default function App() {
               )}
             </Stack.Screen>
             <Stack.Screen name="Create"
-              component={CreateScreen}
-              options={{ presentation: 'transparentModal', animation: 'fade' }}
-            />
+              options={{ presentation: 'transparentModal', animation: 'fade' }}>
+              {(props) => (
+                <CreateScreen
+                  {...props}
+                  todos={todos}
+                  setTodos={saveTodos}
+                  isDark={isDark}
+                  C={C}
+                />
+              )}
+            </Stack.Screen>
           </Stack.Navigator>
         </NavigationContainer>
       </FinalRootView>
