@@ -4,12 +4,8 @@ import { usePomodoro } from '../hooks/usePomodoro';
 import { COLORS } from '../constants/colors';
 import { FONTS } from '../constants/typography';
 import { SHADOWS } from '../constants/shadows';
-import { ColorScheme } from '../types';
-
 interface PomodoroTimerProps {
   onSessionComplete: () => void;
-  C?: ColorScheme;
-  isDark?: boolean;
 }
 
 export default function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
