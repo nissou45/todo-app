@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   TextInput,
   Pressable,
-  FlatList,
   ScrollView,
   Platform,
   Alert,
@@ -18,7 +17,7 @@ import Chip from '../components/Chip';
 import Checkbox from '../components/Checkbox';
 import FAB from '../components/FAB';
 import TabBar from '../components/TabBar';
-import { CATEGORIES, COLORS, getCategory } from '../constants/colors';
+import { CATEGORIES, COLORS } from '../constants/colors';
 import { FONTS } from '../constants/typography';
 import { SHADOWS } from '../constants/shadows';
 import { formatDate } from '../utils/dateHelpers';
@@ -27,9 +26,7 @@ import { Todo, ColorScheme, RootStackParamList } from '../types';
 import { useNotifications } from '../hooks/useNotifications';
 import { User } from '@supabase/supabase-js';
 import { useAuth } from '../hooks/useAuth';
-import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 import TodoRow from '../components/TodoRow';
-import SearchBar from '../components/SearchBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'> & {
   todos: Todo[];
@@ -38,6 +35,71 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'> & {
   C: ColorScheme;
   user: User | null;
 };
+
+type Period = 'matin' | 'aprem' | 'soir' | 'none';
+
+function getPeriod(t: Todo): Period {
+  if (!t.dueDate) return 'none';
+  const h = new Date(t.dueDate).getHours();
+  if (h < 12) return 'matin';
+  if (h < 17) return 'aprem';
+  return 'soir';
+}
+
+const PERIOD_META: Record<Period, { label: string; emoji: string }> = {
+  matin: { label: 'Matin', emoji: '☀️' },
+  aprem: { label: 'Après-midi', emoji: '🌤️' },
+  soir: { label: 'Soir', emoji: '🌙' },
+  none: { label: 'Sans date', emoji: '📌' },
+};
+
+function TimeSection({ period, tasks, onToggle, onDelete, onPress, C, styles }: {
+  period: Period;
+  tasks: Todo[];
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+  onPress: (todo: Todo) => void;
+  C: ColorScheme;
+  styles: ReturnType<typeof getStyles>;
+}) {
+  if (!tasks.length) return null;
+  const meta = PERIOD_META[period];
+  const doneCount = tasks.filter(t => t.completed).length;
+  return (
+    <View style={{ marginTop: 18 }}>
+      <View style={{
+        flexDirection: 'row', alignItems: 'center', gap: 8,
+        paddingHorizontal: 24, paddingBottom: 10,
+      }}>
+        <Text style={{ fontSize: 16 }}>{meta.emoji}</Text>
+        <Text style={{
+          fontFamily: FONTS.bodyMedium, fontSize: 11,
+          letterSpacing: 1.4, color: COLORS.textMuted,
+          textTransform: 'uppercase',
+        }}>{meta.label}</Text>
+        <Text style={{ marginLeft: 'auto', fontSize: 11, color: COLORS.textMuted }}>
+          {doneCount}/{tasks.length}
+        </Text>
+      </View>
+      <View style={[{
+        marginHorizontal: 16, backgroundColor: COLORS.surface,
+        borderRadius: 22, borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden',
+      }, SHADOWS.sm]}>
+        {tasks.map(t => (
+          <TodoRow
+            key={t.id}
+            item={t}
+            onToggle={onToggle}
+            onDelete={onDelete}
+            onPress={onPress}
+            C={C}
+            styles={styles}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
 
 export default function HomeScreen({ navigation, todos, setTodos, isDark, C, user }: Props) {
   const styles = getStyles(isDark, C);
@@ -51,11 +113,6 @@ export default function HomeScreen({ navigation, todos, setTodos, isDark, C, use
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState(new Date());
-
-  const onDragEnd = ({ data }: { data: Todo[] }) => {
-    if (filter !== 'all' || filterCat !== 'all') return;
-    setTodos(data);
-  };
 
   const addTodo = async () => {
     if (!inputText.trim()) return;
@@ -121,20 +178,32 @@ export default function HomeScreen({ navigation, todos, setTodos, isDark, C, use
       },
     ]);
 
-  const filtered = todos.filter((t) => {
-    const matchStatus =
-      filter === 'active' ? !t.completed
-        : filter === 'completed' ? t.completed
-          : true;
-    const matchCat = filterCat === 'all' || t.categoryId === filterCat;
-    const matchSearch = t.text.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchStatus && matchCat && matchSearch;
-  });
+  const filtered = useMemo(() =>
+    todos.filter((t) => {
+      const matchStatus =
+        filter === 'active' ? !t.completed
+          : filter === 'completed' ? t.completed
+            : true;
+      const matchCat = filterCat === 'all' || t.categoryId === filterCat;
+      const matchSearch = t.text.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchStatus && matchCat && matchSearch;
+    }),
+    [todos, filter, filterCat, searchQuery]
+  );
+
+  const grouped = useMemo(() => {
+    const groups: Record<Period, Todo[]> = { matin: [], aprem: [], soir: [], none: [] };
+    for (const t of filtered) groups[getPeriod(t)].push(t);
+    return groups;
+  }, [filtered]);
 
   const remaining = todos.filter((t) => !t.completed).length;
   const doneCount = todos.filter((t) => t.completed).length;
-  const highPriority = todos.filter((t) => !t.completed).length;
   const activeCat = CATEGORIES.find((c) => c.id === selectedCat) || CATEGORIES[0];
+  const isCompletelyEmpty = todos.length === 0 && !searchQuery && filter === 'all' && filterCat === 'all';
+
+  const periods: Period[] = ['matin', 'aprem', 'soir', 'none'];
+  const hasAnyTasks = periods.some(p => grouped[p].length > 0);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
@@ -158,7 +227,7 @@ export default function HomeScreen({ navigation, todos, setTodos, isDark, C, use
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Pressable
-              onPress={() => setShowPicker(true)}
+              onPress={() => navigation.navigate('Calendar')}
               style={{
                 width: 38, height: 38, borderRadius: 19,
                 borderWidth: 1, borderColor: COLORS.border,
@@ -289,29 +358,58 @@ export default function HomeScreen({ navigation, todos, setTodos, isDark, C, use
           </View>
         </View>
 
-        {/* Task list */}
-        {filtered.length === 0 ? (
+        {/* Empty state */}
+        {isCompletelyEmpty ? (
+          <View style={{ alignItems: 'center', paddingTop: 20, paddingHorizontal: 24 }}>
+            <View style={{ width: 180, height: 150 }}>
+              <View style={[{
+                position: 'absolute', top: 0, left: 40, width: 70, height: 70,
+                borderRadius: 35, backgroundColor: COLORS.yellow,
+              }, SHADOWS.tinted(COLORS.yellow)]} />
+              <View style={[{
+                position: 'absolute', bottom: 20, left: 10, width: 70, height: 55,
+                borderRadius: 12, backgroundColor: COLORS.red, padding: 8, transform: [{ rotate: '-8deg' }],
+              }, SHADOWS.tinted(COLORS.red)]}>
+                <View style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.6)' }} />
+                <View style={{ marginTop: 5, width: 30, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.6)' }} />
+              </View>
+              <View style={[{
+                position: 'absolute', bottom: 28, right: 10, width: 70, height: 55,
+                borderRadius: 12, backgroundColor: COLORS.teal, padding: 8, transform: [{ rotate: '6deg' }],
+              }, SHADOWS.tinted(COLORS.teal)]}>
+                <View style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.6)' }} />
+                <View style={{ marginTop: 5, width: 36, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.6)' }} />
+              </View>
+            </View>
+            <Text style={{
+              marginTop: 32, fontFamily: FONTS.display, fontSize: 26,
+              color: COLORS.titleHome, letterSpacing: -0.4, textAlign: 'center',
+            }}>Tout est fait ! 🎉</Text>
+            <Text style={{
+              marginTop: 8, fontFamily: FONTS.body, fontSize: 15,
+              color: COLORS.textSecondary, textAlign: 'center',
+            }}>Pas de tâches pour aujourd'hui.</Text>
+          </View>
+        ) : !hasAnyTasks ? (
           <View style={{ alignItems: 'center', paddingTop: 40 }}>
-            <Text style={{ fontSize: 32, color: COLORS.textMuted, marginBottom: 10 }}>○</Text>
             <Text style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.textMuted }}>
               {searchQuery ? 'Aucun résultat' : 'Aucune tâche ici'}
             </Text>
           </View>
         ) : (
-          <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-            {filtered.map((item, i) => (
-              <TodoRow
-                key={item.id}
-                item={item}
-                onToggle={toggleTodo}
-                onDelete={deleteTodo}
-                onPress={(todo) => navigation.navigate('Detail', { todoId: todo.id })}
-                searchQuery={searchQuery}
-                C={C}
-                styles={styles}
-              />
-            ))}
-          </View>
+          /* Time sections */
+          periods.map(p => (
+            <TimeSection
+              key={p}
+              period={p}
+              tasks={grouped[p]}
+              onToggle={toggleTodo}
+              onDelete={deleteTodo}
+              onPress={(todo) => navigation.navigate('Detail', { todoId: todo.id })}
+              C={C}
+              styles={styles}
+            />
+          ))
         )}
       </ScrollView>
 
