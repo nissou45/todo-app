@@ -19,7 +19,6 @@ import AuthScreen from "./screens/AuthScreen";
 import StatsScreen from "./screens/StatsScreen";
 import CalendarScreen from "./screens/CalendarScreen";
 import CreateScreen from "./screens/CreateScreen";
-import EmptyScreen from "./screens/EmptyScreen";
 import { STORAGE_KEY, DARK, LIGHT, COLORS } from "./constants/colors";
 import { useAppFonts } from "./constants/typography";
 import { Todo, RootStackParamList } from "./types";
